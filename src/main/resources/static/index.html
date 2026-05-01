@@ -1,0 +1,2935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Login</title>
+    <style>
+        :root {
+            --ink: #17211c;
+            --muted: #5b6a61;
+            --paper: #fbfaf5;
+            --line: #d8ddd5;
+            --green: #20745a;
+            --green-dark: #14503e;
+            --red: #b63838;
+            --yellow: #f0c64b;
+            --blue: #287c9c;
+            --white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--ink);
+            font-family: Georgia, "Times New Roman", serif;
+            background:
+                linear-gradient(135deg, rgba(32, 116, 90, 0.12), transparent 32%),
+                linear-gradient(315deg, rgba(240, 198, 75, 0.24), transparent 34%),
+                var(--paper);
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        button {
+            border: 0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            padding: 0.75rem 1rem;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+
+        input,
+        select {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: var(--white);
+            color: var(--ink);
+            padding: 0.75rem;
+        }
+
+        input[type="checkbox"] {
+            width: auto;
+            min-width: 1.1rem;
+            min-height: 1.1rem;
+        }
+
+        label {
+            display: grid;
+            gap: 0.35rem;
+            color: var(--muted);
+            font-size: 0.94rem;
+            font-weight: 700;
+        }
+
+        .page {
+            width: min(1120px, calc(100% - 2rem));
+            margin: 0 auto;
+            padding: 2rem 0;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            border-bottom: 3px solid var(--ink);
+            padding-bottom: 1rem;
+        }
+
+        .brand {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .session {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .role-pill {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: var(--white);
+            color: var(--muted);
+            padding: 0.45rem 0.75rem;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 1.25rem;
+            margin-top: 1.25rem;
+            align-items: start;
+        }
+
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.86);
+            box-shadow: 0 18px 45px rgba(23, 33, 28, 0.08);
+            padding: 1.25rem;
+        }
+
+        .panel h2,
+        .panel h3 {
+            margin: 0 0 1rem;
+        }
+
+        .form {
+            display: grid;
+            gap: 0.9rem;
+        }
+
+        .primary {
+            background: var(--green);
+            color: var(--white);
+        }
+
+        .primary:hover {
+            background: var(--green-dark);
+        }
+
+        .secondary {
+            background: var(--blue);
+            color: var(--white);
+        }
+
+        .danger {
+            background: var(--red);
+            color: var(--white);
+        }
+
+        .ghost {
+            border: 1px solid var(--line);
+            background: var(--white);
+            color: var(--ink);
+        }
+
+        .message {
+            min-height: 1.4rem;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .message.error {
+            color: var(--red);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .user-tools {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .content-stack {
+            display: grid;
+            gap: 1.25rem;
+        }
+
+        .snapshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+        }
+
+        .snapshot-card {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--white);
+            padding: 1rem;
+            display: grid;
+            gap: 0.55rem;
+        }
+
+        .snapshot-card h3 {
+            margin: 0;
+        }
+
+        .snapshot-meta {
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .snapshot-card dl {
+            margin: 0;
+            display: grid;
+            gap: 0.45rem;
+        }
+
+        .snapshot-card dt {
+            font-weight: 700;
+        }
+
+        .snapshot-card dd {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .detail-card {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--white);
+            padding: 1rem;
+            display: grid;
+            gap: 0.8rem;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.8rem;
+        }
+
+        .detail-grid div {
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 0.8rem;
+            background: #f7faf7;
+        }
+
+        .detail-grid strong {
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+
+        .selection-list {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .selection-item {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.75rem;
+            align-items: start;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--white);
+            padding: 0.85rem;
+        }
+
+        .selection-item strong,
+        .selection-item small {
+            display: block;
+        }
+
+        .selection-item small {
+            color: var(--muted);
+            margin-top: 0.25rem;
+        }
+
+        .selection-item input {
+            margin-top: 0.2rem;
+        }
+
+        .item-builder {
+            display: grid;
+            gap: 0.9rem;
+        }
+
+        .item-row {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #f7faf7;
+            padding: 0.9rem;
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .item-row-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .item-grid {
+            display: grid;
+            grid-template-columns: 1.8fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--white);
+        }
+
+        .audit-log-table {
+            max-height: 24rem;
+            overflow-y: auto;
+        }
+
+        .audit-log-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 650px;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid var(--line);
+            padding: 0.85rem;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        th {
+            background: #edf5ee;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .actions button {
+            padding: 0.5rem 0.7rem;
+        }
+
+        .empty {
+            padding: 1rem;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        @media (max-width: 820px) {
+            .topbar,
+            .session,
+            .user-tools {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .brand {
+                font-size: 1.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <header class="topbar">
+            <h1 class="brand">User Access</h1>
+            <div class="session">
+                <span class="role-pill" id="sessionText">Not logged in</span>
+                <button class="danger hidden" id="logoutButton" type="button">Logout</button>
+            </div>
+        </header>
+
+        <section class="layout">
+            <aside class="panel" id="loginPanel">
+                <h2>Login</h2>
+                <form class="form" id="loginForm">
+                    <label>
+                        Email ID
+                        <input id="loginEmail" type="email" autocomplete="email" required>
+                    </label>
+                    <label>
+                        Password
+                        <input id="loginPassword" type="password" autocomplete="current-password" required>
+                    </label>
+                    <button class="primary" type="submit">Login</button>
+                    <p class="message" id="loginMessage"></p>
+                </form>
+            </aside>
+
+            <aside class="panel hidden" id="adminPanel">
+                <h2 id="adminFormTitle">Add User</h2>
+                <form class="form" id="userForm">
+                    <input id="editingUserId" type="hidden">
+                    <label>
+                        Name
+                        <input id="userName" type="text" autocomplete="name" required>
+                    </label>
+                    <label>
+                        Email ID
+                        <input id="userEmail" type="email" autocomplete="email" required>
+                    </label>
+                    <label>
+                        Password
+                        <input id="userPassword" type="password" autocomplete="new-password" minlength="8">
+                    </label>
+                    <label id="roleField">
+                        Role
+                        <select id="userRole">
+                            <option value="ASSOCIATE">Associate</option>
+                            <option value="ADMIN">Admin</option>
+                            <option value="SUPER_ADMIN">Super Admin</option>
+                        </select>
+                    </label>
+                    <button class="primary" type="submit">Save User</button>
+                    <button class="ghost" id="cancelEditButton" type="button">Cancel Edit</button>
+                    <p class="message" id="userMessage"></p>
+                </form>
+            </aside>
+
+            <aside class="panel hidden" id="clientPanel">
+                <h2 id="clientFormTitle">Create Client</h2>
+                <form class="form" id="clientForm">
+                    <input id="editingClientId" type="hidden">
+                    <label>
+                        Client Name
+                        <input id="clientName" type="text" autocomplete="organization" required>
+                    </label>
+                    <label>
+                        Organisation Name
+                        <input id="clientOrganisationName" type="text" autocomplete="organization" required>
+                    </label>
+                    <label>
+                        Organisation Address
+                        <input id="clientOrganisationAddress" type="text" autocomplete="street-address" required>
+                    </label>
+                    <label>
+                        Client Email
+                        <input id="clientEmail" type="email" autocomplete="email" required>
+                    </label>
+                    <label>
+                        Client Phone
+                        <input id="clientPhone" type="tel" autocomplete="tel" required>
+                    </label>
+                    <button class="primary" type="submit">Save Client</button>
+                    <button class="ghost" id="cancelClientEditButton" type="button">Cancel Edit</button>
+                    <p class="message" id="clientMessage"></p>
+                </form>
+            </aside>
+
+            <aside class="panel hidden" id="fcPanel">
+                <h2 id="fcFormTitle">Create FC</h2>
+                <form class="form" id="fcForm">
+                    <input id="editingFcId" type="hidden">
+                    <label>
+                        Warehouse ID
+                        <input id="fcWarehouseId" type="text" required>
+                    </label>
+                    <label>
+                        FC ID
+                        <input id="fcId" type="text" required>
+                    </label>
+                    <label>
+                        Location
+                        <input id="fcLocation" type="text" required>
+                    </label>
+                    <label>
+                        Latitude
+                        <input id="fcLatitude" type="number" step="any" required>
+                    </label>
+                    <label>
+                        Longitude
+                        <input id="fcLongitude" type="number" step="any" required>
+                    </label>
+                    <button class="primary" type="submit">Save FC</button>
+                    <button class="ghost" id="cancelFcEditButton" type="button">Cancel Edit</button>
+                    <p class="message" id="fcMessage"></p>
+                </form>
+            </aside>
+
+            <aside class="panel hidden" id="productPanel">
+                <h2 id="productFormTitle">Create Product</h2>
+                <form class="form" id="productForm">
+                    <input id="editingProductId" type="hidden">
+                    <label>
+                        Product Name
+                        <input id="productName" type="text" required>
+                    </label>
+                    <label>
+                        Product ID
+                        <input id="productBusinessId" type="text" required>
+                    </label>
+                    <label>
+                        SKU
+                        <input id="productSku" type="text" required>
+                    </label>
+                    <label>
+                        Client
+                        <select id="productClientId" required>
+                            <option value="">Select client</option>
+                        </select>
+                    </label>
+                    <label>
+                        Product Description
+                        <input id="productDescription" type="text" required>
+                    </label>
+                    <label>
+                        Product Price
+                        <input id="productPrice" type="number" min="0.01" step="0.01" required>
+                    </label>
+                    <label>
+                        Quantity
+                        <input id="productQuantity" type="number" min="0" step="1" required>
+                    </label>
+                    <button class="primary" type="submit">Save Product</button>
+                    <button class="ghost" id="cancelProductEditButton" type="button">Cancel Edit</button>
+                    <p class="message" id="productMessage"></p>
+                </form>
+            </aside>
+
+            <aside class="panel hidden" id="orderPanel">
+                <h2>Create Order</h2>
+                <form class="form" id="orderForm">
+                    <label>
+                        Order Number
+                        <input id="orderNumber" type="text" required>
+                    </label>
+                    <label>
+                        FC ID
+                        <select id="orderFcId" required>
+                            <option value="">Select FC</option>
+                        </select>
+                    </label>
+                    <label>
+                        Client Name
+                        <input id="orderClientName" type="text" readonly>
+                    </label>
+                    <input id="orderClientId" type="hidden">
+                    <label>
+                        Bill To Address
+                        <input id="orderBillToAddress" type="text" required>
+                    </label>
+                    <label>
+                        Ship To Address
+                        <input id="orderShipToAddress" type="text" required>
+                    </label>
+                    <label>
+                        Status
+                        <select id="orderStatus">
+                            <option value="CREATED">CREATED</option>
+                            <option value="BACK_ORDER">BACK_ORDER</option>
+                        </select>
+                    </label>
+                    <div class="item-builder">
+                        <div class="item-row-head">
+                            <strong>Order Items</strong>
+                            <button class="secondary" id="addOrderItemButton" type="button">Add Item</button>
+                        </div>
+                        <div id="orderItemsContainer"></div>
+                    </div>
+                    <button class="primary" type="submit">Create Order</button>
+                    <p class="message" id="orderMessage"></p>
+                </form>
+            </aside>
+
+            <aside class="panel hidden" id="pickerPanel">
+                <h2 id="pickerFormTitle">Create Picker</h2>
+                <form class="form" id="pickerForm">
+                    <input id="editingPickerId" type="hidden">
+                    <label>
+                        Picker Name
+                        <input id="pickerName" type="text" required>
+                    </label>
+                    <label>
+                        Picker Email
+                        <input id="pickerEmail" type="email" required>
+                    </label>
+                    <label>
+                        Employee ID
+                        <input id="pickerEmployeeId" type="text" required>
+                    </label>
+                    <button class="primary" type="submit">Save Picker</button>
+                    <button class="ghost" id="cancelPickerEditButton" type="button">Cancel Edit</button>
+                    <p class="message" id="pickerMessage"></p>
+                </form>
+            </aside>
+
+            <aside class="panel hidden" id="batchPanel">
+                <h2 id="batchFormTitle">Create Batch</h2>
+                <form class="form" id="batchForm">
+                    <input id="editingBatchId" type="hidden">
+                    <div class="item-builder">
+                        <div class="item-row-head">
+                            <strong>Batch Orders</strong>
+                            <div class="actions">
+                                <button class="ghost" id="refreshBatchFormButton" type="button">Refresh Orders</button>
+                                <button class="ghost" id="selectAllBatchOrdersButton" type="button">Select Visible</button>
+                            </div>
+                        </div>
+                        <p class="message" id="batchFormHint">Only orders in CREATED status are eligible. BACK_ORDER orders are excluded.</p>
+                        <div class="selection-list" id="batchOrderSelection"></div>
+                    </div>
+                    <button class="primary" type="submit">Save Batch</button>
+                    <button class="ghost" id="cancelBatchEditButton" type="button">Cancel Edit</button>
+                    <p class="message" id="batchMessage"></p>
+                </form>
+            </aside>
+
+            <div class="content-stack">
+                <section class="panel hidden" id="usersSection">
+                    <div class="user-tools">
+                        <div>
+                            <h2>Users</h2>
+                            <p class="message" id="usersMessage">Login as admin to view users.</p>
+                        </div>
+                        <button class="secondary hidden" id="refreshButton" type="button">Refresh Users</button>
+                    </div>
+                    <div class="table-wrap hidden" id="usersTableWrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th id="actionsHeader">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="panel hidden" id="clientsSection">
+                    <div class="user-tools">
+                        <div>
+                            <h2>Clients</h2>
+                            <p class="message" id="clientsMessage">Login to view clients.</p>
+                        </div>
+                        <button class="secondary hidden" id="refreshClientsButton" type="button">Refresh Clients</button>
+                    </div>
+                    <div class="table-wrap hidden" id="clientsTableWrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Organisation</th>
+                                    <th>Organisation Address</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientsTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="panel hidden" id="fcsSection">
+                    <div class="user-tools">
+                        <div>
+                            <h2>FCs</h2>
+                            <p class="message" id="fcsMessage">Login to view FCs.</p>
+                        </div>
+                        <button class="secondary hidden" id="refreshFcsButton" type="button">Refresh FCs</button>
+                    </div>
+                    <div class="table-wrap hidden" id="fcsTableWrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Warehouse ID</th>
+                                    <th>FC ID</th>
+                                    <th>Location</th>
+                                    <th>Latitude</th>
+                                    <th>Longitude</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fcsTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="panel hidden" id="productsSection">
+                    <div class="user-tools">
+                        <div>
+                            <h2>Products</h2>
+                            <p class="message" id="productsMessage">Login to view products.</p>
+                        </div>
+                        <button class="secondary hidden" id="refreshProductsButton" type="button">Refresh Products</button>
+                    </div>
+                    <div class="table-wrap hidden" id="productsTableWrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Product ID</th>
+                                    <th>SKU</th>
+                                    <th>Client</th>
+                                    <th>Description</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="panel hidden" id="inventorySection">
+                    <div class="user-tools">
+                        <div>
+                            <h2>Inventory Snapshot</h2>
+                            <p class="message" id="inventoryMessage">Login to view inventory snapshot.</p>
+                        </div>
+                        <button class="secondary hidden" id="refreshInventoryButton" type="button">Refresh Snapshot</button>
+                    </div>
+                    <div class="snapshot-grid hidden" id="inventoryGrid"></div>
+                </section>
+
+                <section class="panel hidden" id="ordersSection">
+                    <div class="user-tools">
+                        <div>
+                            <h2>Orders</h2>
+                            <p class="message" id="ordersMessage">Login to view orders.</p>
+                        </div>
+                        <button class="secondary hidden" id="refreshOrdersButton" type="button">Refresh Orders</button>
+                    </div>
+                    <div class="table-wrap hidden" id="ordersTableWrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Order Number</th>
+                                    <th>Client</th>
+                                    <th>Warehouse ID</th>
+                                    <th>FC ID</th>
+                                    <th>Status</th>
+                                    <th>Picker</th>
+                                    <th>Items</th>
+                                    <th>Created At</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="panel hidden" id="batchesSection">
+                    <div class="user-tools">
+                        <div>
+                            <h2>Batches</h2>
+                            <p class="message" id="batchesMessage">Login to view batches.</p>
+                        </div>
+                        <button class="secondary hidden" id="refreshBatchesButton" type="button">Refresh Batches</button>
+                    </div>
+                    <div class="table-wrap hidden" id="batchesTableWrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Batch ID</th>
+                                    <th>Status</th>
+                                    <th>Orders</th>
+                                    <th>Warehouse / FC</th>
+                                    <th>Picker</th>
+                                    <th>Created At</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="batchesTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="panel hidden" id="pickersSection">
+                    <div class="user-tools">
+                        <div>
+                            <h2>Pickers</h2>
+                            <p class="message" id="pickersMessage">Login to view pickers.</p>
+                        </div>
+                        <button class="secondary hidden" id="refreshPickersButton" type="button">Refresh Pickers</button>
+                    </div>
+                    <div class="table-wrap hidden" id="pickersTableWrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Employee ID</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pickersTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="panel hidden" id="backOrderAuditSection">
+                    <div class="user-tools">
+                        <div>
+                            <h2>Back Order Audit Logs</h2>
+                            <p class="message" id="backOrderAuditMessage">Login to view back order audits.</p>
+                        </div>
+                        <button class="secondary hidden" id="refreshBackOrderAuditButton" type="button">Refresh Audit Logs</button>
+                    </div>
+                    <div class="table-wrap audit-log-table hidden" id="backOrderAuditTableWrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Audit ID</th>
+                                    <th>Back Order Count</th>
+                                    <th>Audited At</th>
+                                </tr>
+                            </thead>
+                            <tbody id="backOrderAuditTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="panel hidden" id="orderDetailSection">
+                    <div class="user-tools">
+                        <div>
+                            <h2>Order Detail</h2>
+                            <p class="message" id="orderDetailMessage">Select an order to view complete details.</p>
+                        </div>
+                        <button class="ghost hidden" id="clearOrderDetailButton" type="button">Clear Detail</button>
+                    </div>
+                    <div class="detail-card hidden" id="orderDetailCard">
+                        <div class="detail-grid" id="orderDetailGrid"></div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Order Number</th>
+                                        <th>SKU</th>
+                                        <th>Product ID</th>
+                                        <th>Requested</th>
+                                        <th>Fulfilled</th>
+                                        <th>Back Ordered</th>
+                                        <th>Client ID</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orderDetailItemsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel hidden" id="batchDetailSection">
+                    <div class="user-tools">
+                        <div>
+                            <h2>Batch Detail</h2>
+                            <p class="message" id="batchDetailMessage">Select a batch to view complete details.</p>
+                        </div>
+                        <button class="ghost hidden" id="clearBatchDetailButton" type="button">Clear Detail</button>
+                    </div>
+                    <div class="detail-card hidden" id="batchDetailCard">
+                        <div class="detail-grid" id="batchDetailGrid"></div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Order Number</th>
+                                        <th>Client</th>
+                                        <th>Warehouse ID</th>
+                                        <th>FC ID</th>
+                                        <th>Status</th>
+                                        <th>Picker</th>
+                                        <th>Items</th>
+                                        <th>Requested</th>
+                                        <th>Fulfilled</th>
+                                        <th>Back Ordered</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="batchOrderLifecycleBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const apiBase = "/data";
+        let currentUser = null;
+        let users = [];
+        let clients = [];
+        let fcs = [];
+        let products = [];
+        let inventorySnapshot = [];
+        let orders = [];
+        let batches = [];
+        let pickers = [];
+        let backOrderAudits = [];
+        let selectedOrder = null;
+        let selectedBatch = null;
+
+        const loginPanel = document.getElementById("loginPanel");
+        const adminPanel = document.getElementById("adminPanel");
+        const clientPanel = document.getElementById("clientPanel");
+        const fcPanel = document.getElementById("fcPanel");
+        const productPanel = document.getElementById("productPanel");
+        const orderPanel = document.getElementById("orderPanel");
+        const pickerPanel = document.getElementById("pickerPanel");
+        const batchPanel = document.getElementById("batchPanel");
+        const usersSection = document.getElementById("usersSection");
+        const clientsSection = document.getElementById("clientsSection");
+        const fcsSection = document.getElementById("fcsSection");
+        const productsSection = document.getElementById("productsSection");
+        const inventorySection = document.getElementById("inventorySection");
+        const ordersSection = document.getElementById("ordersSection");
+        const batchesSection = document.getElementById("batchesSection");
+        const pickersSection = document.getElementById("pickersSection");
+        const backOrderAuditSection = document.getElementById("backOrderAuditSection");
+        const orderDetailSection = document.getElementById("orderDetailSection");
+        const batchDetailSection = document.getElementById("batchDetailSection");
+        const usersTableWrap = document.getElementById("usersTableWrap");
+        const usersTableBody = document.getElementById("usersTableBody");
+        const clientsTableWrap = document.getElementById("clientsTableWrap");
+        const clientsTableBody = document.getElementById("clientsTableBody");
+        const fcsTableWrap = document.getElementById("fcsTableWrap");
+        const fcsTableBody = document.getElementById("fcsTableBody");
+        const productsTableWrap = document.getElementById("productsTableWrap");
+        const productsTableBody = document.getElementById("productsTableBody");
+        const inventoryGrid = document.getElementById("inventoryGrid");
+        const ordersTableWrap = document.getElementById("ordersTableWrap");
+        const ordersTableBody = document.getElementById("ordersTableBody");
+        const batchesTableWrap = document.getElementById("batchesTableWrap");
+        const batchesTableBody = document.getElementById("batchesTableBody");
+        const pickersTableWrap = document.getElementById("pickersTableWrap");
+        const pickersTableBody = document.getElementById("pickersTableBody");
+        const backOrderAuditTableWrap = document.getElementById("backOrderAuditTableWrap");
+        const backOrderAuditTableBody = document.getElementById("backOrderAuditTableBody");
+        const orderDetailGrid = document.getElementById("orderDetailGrid");
+        const orderDetailCard = document.getElementById("orderDetailCard");
+        const orderDetailItemsBody = document.getElementById("orderDetailItemsBody");
+        const batchDetailGrid = document.getElementById("batchDetailGrid");
+        const batchDetailCard = document.getElementById("batchDetailCard");
+        const batchOrderLifecycleBody = document.getElementById("batchOrderLifecycleBody");
+        const loginForm = document.getElementById("loginForm");
+        const userForm = document.getElementById("userForm");
+        const clientForm = document.getElementById("clientForm");
+        const fcForm = document.getElementById("fcForm");
+        const productForm = document.getElementById("productForm");
+        const orderForm = document.getElementById("orderForm");
+        const pickerForm = document.getElementById("pickerForm");
+        const batchForm = document.getElementById("batchForm");
+        const loginMessage = document.getElementById("loginMessage");
+        const userMessage = document.getElementById("userMessage");
+        const clientMessage = document.getElementById("clientMessage");
+        const fcMessage = document.getElementById("fcMessage");
+        const productMessage = document.getElementById("productMessage");
+        const orderMessage = document.getElementById("orderMessage");
+        const pickerMessage = document.getElementById("pickerMessage");
+        const batchMessage = document.getElementById("batchMessage");
+        const batchFormHint = document.getElementById("batchFormHint");
+        const usersMessage = document.getElementById("usersMessage");
+        const clientsMessage = document.getElementById("clientsMessage");
+        const fcsMessage = document.getElementById("fcsMessage");
+        const productsMessage = document.getElementById("productsMessage");
+        const inventoryMessage = document.getElementById("inventoryMessage");
+        const ordersMessage = document.getElementById("ordersMessage");
+        const batchesMessage = document.getElementById("batchesMessage");
+        const pickersMessage = document.getElementById("pickersMessage");
+        const backOrderAuditMessage = document.getElementById("backOrderAuditMessage");
+        const orderDetailMessage = document.getElementById("orderDetailMessage");
+        const batchDetailMessage = document.getElementById("batchDetailMessage");
+        const sessionText = document.getElementById("sessionText");
+        const logoutButton = document.getElementById("logoutButton");
+        const refreshButton = document.getElementById("refreshButton");
+        const refreshClientsButton = document.getElementById("refreshClientsButton");
+        const refreshFcsButton = document.getElementById("refreshFcsButton");
+        const refreshProductsButton = document.getElementById("refreshProductsButton");
+        const refreshInventoryButton = document.getElementById("refreshInventoryButton");
+        const refreshOrdersButton = document.getElementById("refreshOrdersButton");
+        const refreshBatchesButton = document.getElementById("refreshBatchesButton");
+        const refreshBatchFormButton = document.getElementById("refreshBatchFormButton");
+        const refreshPickersButton = document.getElementById("refreshPickersButton");
+        const refreshBackOrderAuditButton = document.getElementById("refreshBackOrderAuditButton");
+        const clearOrderDetailButton = document.getElementById("clearOrderDetailButton");
+        const clearBatchDetailButton = document.getElementById("clearBatchDetailButton");
+        const adminFormTitle = document.getElementById("adminFormTitle");
+        const clientFormTitle = document.getElementById("clientFormTitle");
+        const fcFormTitle = document.getElementById("fcFormTitle");
+        const productFormTitle = document.getElementById("productFormTitle");
+        const pickerFormTitle = document.getElementById("pickerFormTitle");
+        const batchFormTitle = document.getElementById("batchFormTitle");
+        const cancelEditButton = document.getElementById("cancelEditButton");
+        const cancelClientEditButton = document.getElementById("cancelClientEditButton");
+        const cancelFcEditButton = document.getElementById("cancelFcEditButton");
+        const cancelProductEditButton = document.getElementById("cancelProductEditButton");
+        const cancelPickerEditButton = document.getElementById("cancelPickerEditButton");
+        const cancelBatchEditButton = document.getElementById("cancelBatchEditButton");
+        const roleField = document.getElementById("roleField");
+        const userRole = document.getElementById("userRole");
+        const orderItemsContainer = document.getElementById("orderItemsContainer");
+        const batchOrderSelection = document.getElementById("batchOrderSelection");
+
+        function canManageUsers() {
+            return currentUser && (currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN");
+        }
+
+        function canManageBusinessData() {
+            return currentUser && (currentUser.role === "ASSOCIATE" || currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN");
+        }
+
+        function canAdministerPickers() {
+            return currentUser && (currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN");
+        }
+
+        function isSuperAdmin() {
+            return currentUser && currentUser.role === "SUPER_ADMIN";
+        }
+
+        function currentUserPicker() {
+            if (!currentUser) {
+                return null;
+            }
+
+            return pickers.find((picker) => picker.email.toLowerCase() === currentUser.email.toLowerCase()) || null;
+        }
+
+        function getForwardOnlyStatuses(currentStatus) {
+            const statusMap = {
+                CREATED: ["CREATED", "ASSIGNED_FOR_PICKING", "CANCELLED", "BACK_ORDER"],
+                BACK_ORDER: ["BACK_ORDER", "CREATED", "CANCELLED"],
+                ASSIGNED_FOR_PICKING: ["ASSIGNED_FOR_PICKING", "PICKED", "CANCELLED", "BACK_ORDER"],
+                PICKED: ["PICKED", "SHIPPED", "CANCELLED"],
+                SHIPPED: ["SHIPPED", "DELIVERED", "CANCELLED"],
+                DELIVERED: ["DELIVERED"],
+                CANCELLED: ["CANCELLED"]
+            };
+            return statusMap[currentStatus] || [currentStatus];
+        }
+
+        function getUniqueBatchOrders(batch) {
+            const grouped = new Map();
+            (batch.orders || []).forEach((item) => {
+                if (!grouped.has(item.orderNumber)) {
+                    grouped.set(item.orderNumber, {
+                        orderNumber: item.orderNumber,
+                        clientName: item.clientName,
+                        warehouseId: item.warehouseId,
+                        fcId: item.fcId,
+                        itemCount: 0
+                    });
+                }
+                grouped.get(item.orderNumber).itemCount += 1;
+            });
+            return Array.from(grouped.values());
+        }
+
+        function isBatchEligibleOrder(order) {
+            return order.status === "CREATED";
+        }
+
+        function getBatchLifecycleOrders(batch = selectedBatch) {
+            if (!batch) {
+                return [];
+            }
+
+            const grouped = new Map();
+
+            (batch.orders || []).forEach((item) => {
+                if (!grouped.has(item.orderNumber)) {
+                    const liveOrder = orders.find((order) => order.orderNumber === item.orderNumber);
+                    grouped.set(item.orderNumber, {
+                        orderNumber: item.orderNumber,
+                        clientName: item.clientName,
+                        warehouseId: item.warehouseId,
+                        fcId: item.fcId,
+                        status: liveOrder ? liveOrder.status : item.orderStatus,
+                        itemCount: 0,
+                        requestedQuantity: 0,
+                        fulfilledQuantity: 0,
+                        backOrderedQuantity: 0,
+                        pickerName: liveOrder ? liveOrder.pickerName : batch.pickerName,
+                        pickerId: liveOrder ? liveOrder.pickerId : batch.pickerId,
+                        pickedAt: liveOrder ? liveOrder.pickedAt : null
+                    });
+                }
+
+                const order = grouped.get(item.orderNumber);
+                order.itemCount += 1;
+                order.requestedQuantity += item.quantity;
+                order.fulfilledQuantity += item.fulfilledQuantity;
+                order.backOrderedQuantity += item.backOrderedQuantity;
+            });
+
+            return Array.from(grouped.values());
+        }
+
+        function getBatchChoiceOrders(editingBatchId = "") {
+            const choices = new Map();
+
+            orders
+                .filter((order) => isBatchEligibleOrder(order))
+                .forEach((order) => {
+                    choices.set(order.orderNumber, {
+                        orderNumber: order.orderNumber,
+                        clientName: order.clientName,
+                        warehouseId: order.warehouseId,
+                        fcId: order.fcId,
+                        itemCount: order.items.length
+                    });
+                });
+
+            if (editingBatchId) {
+                const editingBatch = batches.find((batch) => String(batch.batchId) === String(editingBatchId));
+                if (editingBatch) {
+                    getUniqueBatchOrders(editingBatch).forEach((order) => {
+                        choices.set(order.orderNumber, order);
+                    });
+                }
+            }
+
+            return Array.from(choices.values()).sort((left, right) => left.orderNumber.localeCompare(right.orderNumber));
+        }
+
+        function renderPickerOptions(selectedPickerId = "") {
+            const options = ['<option value="">Select picker</option>']
+                .concat(pickers.map((picker) => `
+                    <option value="${picker.id}" ${String(selectedPickerId) === String(picker.id) ? "selected" : ""}>
+                        ${picker.name} | ${picker.employeeId}
+                    </option>
+                `));
+            return options.join("");
+        }
+
+        function renderProductClientOptions() {
+            const productSelect = document.getElementById("productClientId");
+            const selectedProductClient = productSelect.value;
+            const options = ['<option value="">Select client</option>']
+                .concat(clients.map((client) => `<option value="${client.id}">${client.name} (${client.email})</option>`));
+            productSelect.innerHTML = options.join("");
+            if (clients.some((client) => String(client.id) === selectedProductClient)) {
+                productSelect.value = selectedProductClient;
+            }
+
+            renderOrderItems();
+        }
+
+        function renderFcOptions() {
+            const select = document.getElementById("orderFcId");
+            const selectedValue = select.value;
+            select.innerHTML = ['<option value="">Select FC</option>']
+                .concat(fcs.map((fc) => `<option value="${fc.fcId}">${fc.fcId} | ${fc.warehouseId} | ${fc.location}</option>`))
+                .join("");
+            if (fcs.some((fc) => fc.fcId === selectedValue)) {
+                select.value = selectedValue;
+            }
+        }
+
+        function renderBatchOrderSelection(seedOrderNumbers = null) {
+            const editingBatchId = document.getElementById("editingBatchId").value;
+            const existingSelection = seedOrderNumbers
+                ? [...seedOrderNumbers]
+                : Array.from(batchOrderSelection.querySelectorAll("input:checked")).map((input) => input.value);
+            const selectedOrderNumbers = new Set(existingSelection);
+
+            if (!seedOrderNumbers && editingBatchId && !selectedOrderNumbers.size) {
+                const editingBatch = batches.find((batch) => String(batch.batchId) === String(editingBatchId));
+                if (editingBatch) {
+                    getUniqueBatchOrders(editingBatch).forEach((order) => selectedOrderNumbers.add(order.orderNumber));
+                }
+            }
+
+            const choices = getBatchChoiceOrders(editingBatchId);
+            batchOrderSelection.innerHTML = "";
+
+            if (!choices.length) {
+                batchOrderSelection.innerHTML = '<div class="empty">No eligible CREATED orders are available for batching. BACK_ORDER and assigned orders are excluded.</div>';
+                return;
+            }
+
+            choices.forEach((order) => {
+                const label = document.createElement("label");
+                label.className = "selection-item";
+                label.innerHTML = `
+                    <input type="checkbox" value="${order.orderNumber}" ${selectedOrderNumbers.has(order.orderNumber) ? "checked" : ""}>
+                    <span>
+                        <strong>${order.orderNumber}</strong>
+                        <small>${order.clientName} | ${order.warehouseId} | ${order.fcId} | ${order.itemCount} item(s)</small>
+                    </span>
+                `;
+                batchOrderSelection.appendChild(label);
+            });
+        }
+
+        function getProductsForSelectedOrderClient() {
+            const clientId = document.getElementById("orderClientId").value;
+            if (!clientId) {
+                return products;
+            }
+
+            return products.filter((product) => String(product.clientId) === clientId);
+        }
+
+        function createOrderItemRow(item = {}) {
+            const row = document.createElement("div");
+            row.className = "item-row";
+            const availableProducts = getProductsForSelectedOrderClient();
+            const options = ['<option value="">Select product</option>']
+                .concat(availableProducts.map((product) => `
+                    <option value="${product.id}" ${String(item.productRecordId || "") === String(product.id) ? "selected" : ""}>
+                        ${product.name} | ${product.sku} | Stock ${product.quantity}
+                    </option>
+                `));
+
+            row.innerHTML = `
+                <div class="item-row-head">
+                    <strong>Item</strong>
+                    <button class="danger" type="button" data-role="remove-order-item">Remove</button>
+                </div>
+                <div class="item-grid">
+                    <label>
+                        Product
+                        <select data-role="order-product" required>
+                            ${options.join("")}
+                        </select>
+                    </label>
+                    <label>
+                        Quantity
+                        <input data-role="order-quantity" type="number" min="1" step="1" value="${item.quantity || 1}" required>
+                    </label>
+                </div>
+            `;
+            return row;
+        }
+
+        function renderOrderItems(items = null) {
+            if (items === null && orderItemsContainer.children.length) {
+                const currentRows = Array.from(orderItemsContainer.querySelectorAll(".item-row")).map((row) => ({
+                    productRecordId: row.querySelector("[data-role='order-product']").value,
+                    quantity: row.querySelector("[data-role='order-quantity']").value
+                }));
+                orderItemsContainer.innerHTML = "";
+                currentRows.forEach((item) => orderItemsContainer.appendChild(createOrderItemRow(item)));
+                return;
+            }
+
+            orderItemsContainer.innerHTML = "";
+            const seedItems = items && items.length ? items : [{}];
+            seedItems.forEach((item) => orderItemsContainer.appendChild(createOrderItemRow(item)));
+        }
+
+        async function request(path, options = {}) {
+            let response;
+
+            try {
+                response = await fetch(`${apiBase}${path}`, {
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...options.headers
+                    },
+                    ...options
+                });
+            } catch (error) {
+                throw new Error("Server is not reachable. Open http://localhost:8080/ and make sure Spring Boot is running.");
+            }
+
+            if (!response.ok) {
+                let message = `Request failed (${response.status})`;
+                try {
+                    const error = await response.json();
+                    message = error.message || error.detail || message;
+                } catch (ignored) {
+                    message = response.statusText || message;
+                }
+                throw new Error(message);
+            }
+
+            if (response.status === 204) {
+                return null;
+            }
+
+            return response.json();
+        }
+
+        function setMessage(element, text, isError = false) {
+            element.textContent = text;
+            element.classList.toggle("error", isError);
+        }
+
+        function renderSession() {
+            if (!currentUser) {
+                sessionText.textContent = "Not logged in";
+                loginPanel.classList.remove("hidden");
+                adminPanel.classList.add("hidden");
+                clientPanel.classList.add("hidden");
+                fcPanel.classList.add("hidden");
+                productPanel.classList.add("hidden");
+                orderPanel.classList.add("hidden");
+                pickerPanel.classList.add("hidden");
+                batchPanel.classList.add("hidden");
+                usersSection.classList.add("hidden");
+                clientsSection.classList.add("hidden");
+                fcsSection.classList.add("hidden");
+                productsSection.classList.add("hidden");
+                inventorySection.classList.add("hidden");
+                ordersSection.classList.add("hidden");
+                batchesSection.classList.add("hidden");
+                pickersSection.classList.add("hidden");
+                backOrderAuditSection.classList.add("hidden");
+                orderDetailSection.classList.add("hidden");
+                batchDetailSection.classList.add("hidden");
+                logoutButton.classList.add("hidden");
+                refreshButton.classList.add("hidden");
+                refreshClientsButton.classList.add("hidden");
+                refreshFcsButton.classList.add("hidden");
+                refreshProductsButton.classList.add("hidden");
+                refreshInventoryButton.classList.add("hidden");
+                refreshOrdersButton.classList.add("hidden");
+                refreshBatchesButton.classList.add("hidden");
+                refreshPickersButton.classList.add("hidden");
+                refreshBackOrderAuditButton.classList.add("hidden");
+                return;
+            }
+
+            sessionText.textContent = `${currentUser.name} (${currentUser.role})`;
+            loginPanel.classList.add("hidden");
+            adminPanel.classList.toggle("hidden", !canManageUsers());
+            roleField.classList.toggle("hidden", !isSuperAdmin());
+            clientPanel.classList.toggle("hidden", !canManageBusinessData());
+            fcPanel.classList.toggle("hidden", !canManageBusinessData());
+            productPanel.classList.toggle("hidden", !canManageBusinessData());
+            orderPanel.classList.toggle("hidden", !canManageBusinessData());
+            pickerPanel.classList.toggle("hidden", !canAdministerPickers());
+                batchPanel.classList.toggle("hidden", !canManageBusinessData());
+            usersSection.classList.toggle("hidden", !canManageUsers());
+            clientsSection.classList.toggle("hidden", !canManageBusinessData());
+            fcsSection.classList.toggle("hidden", !canManageBusinessData());
+            productsSection.classList.toggle("hidden", !canManageBusinessData());
+            inventorySection.classList.toggle("hidden", !canManageBusinessData());
+            ordersSection.classList.toggle("hidden", !canManageBusinessData());
+            batchesSection.classList.toggle("hidden", !canManageBusinessData());
+            pickersSection.classList.toggle("hidden", !canManageBusinessData());
+            backOrderAuditSection.classList.toggle("hidden", !canManageBusinessData());
+            orderDetailSection.classList.toggle("hidden", !canManageBusinessData());
+            batchDetailSection.classList.toggle("hidden", !canManageBusinessData());
+            logoutButton.classList.remove("hidden");
+            refreshButton.classList.toggle("hidden", !canManageUsers());
+            refreshClientsButton.classList.toggle("hidden", !canManageBusinessData());
+            refreshFcsButton.classList.toggle("hidden", !canManageBusinessData());
+            refreshProductsButton.classList.toggle("hidden", !canManageBusinessData());
+            refreshInventoryButton.classList.toggle("hidden", !canManageBusinessData());
+            refreshOrdersButton.classList.toggle("hidden", !canManageBusinessData());
+            refreshBatchesButton.classList.toggle("hidden", !canManageBusinessData());
+            refreshPickersButton.classList.toggle("hidden", !canManageBusinessData());
+            refreshBackOrderAuditButton.classList.toggle("hidden", !canManageBusinessData());
+        }
+
+        function renderUsers() {
+            usersTableBody.innerHTML = "";
+            usersTableWrap.classList.toggle("hidden", !canManageUsers() || !users.length);
+
+            if (!canManageUsers()) {
+                setMessage(usersMessage, "Login as admin to view users.");
+                return;
+            }
+
+            if (!users.length) {
+                setMessage(usersMessage, "No users found.");
+                return;
+            }
+
+            setMessage(usersMessage, `${users.length} user(s) found.`);
+
+            users.forEach((user) => {
+                const row = document.createElement("tr");
+                const canEditUser = isSuperAdmin() || user.role !== "SUPER_ADMIN";
+
+                row.innerHTML = `
+                    <td>${user.id}</td>
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td>${user.role}</td>
+                    <td class="actions">
+                        ${canEditUser ? `<button class="secondary" type="button" data-action="edit" data-id="${user.id}">Edit</button>` : ""}
+                        ${canEditUser ? `<button class="danger" type="button" data-action="delete" data-id="${user.id}">Delete</button>` : ""}
+                    </td>
+                `;
+                usersTableBody.appendChild(row);
+            });
+        }
+
+        function renderClients() {
+            clientsTableBody.innerHTML = "";
+            clientsTableWrap.classList.toggle("hidden", !canManageBusinessData() || !clients.length);
+            renderProductClientOptions();
+
+            if (!canManageBusinessData()) {
+                setMessage(clientsMessage, "Login to view clients.");
+                return;
+            }
+
+            if (!clients.length) {
+                setMessage(clientsMessage, "No clients found.");
+                return;
+            }
+
+            setMessage(clientsMessage, `${clients.length} client(s) found.`);
+
+            clients.forEach((client) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${client.id}</td>
+                    <td>${client.name}</td>
+                    <td>${client.organisationName || ""}</td>
+                    <td>${client.organisationAddress || ""}</td>
+                    <td>${client.email}</td>
+                    <td>${client.phone}</td>
+                    <td class="actions">
+                        <button class="secondary" type="button" data-action="edit" data-id="${client.id}">Edit</button>
+                        <button class="danger" type="button" data-action="delete" data-id="${client.id}">Delete</button>
+                    </td>
+                `;
+                clientsTableBody.appendChild(row);
+            });
+
+        }
+
+        function renderFcs() {
+            fcsTableBody.innerHTML = "";
+            fcsTableWrap.classList.toggle("hidden", !canManageBusinessData() || !fcs.length);
+            renderFcOptions();
+
+            if (!canManageBusinessData()) {
+                setMessage(fcsMessage, "Login to view FCs.");
+                return;
+            }
+
+            if (!fcs.length) {
+                setMessage(fcsMessage, "No FCs found.");
+                return;
+            }
+
+            setMessage(fcsMessage, `${fcs.length} FC(s) found.`);
+            fcs.forEach((fc) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${fc.id}</td>
+                    <td>${fc.warehouseId}</td>
+                    <td>${fc.fcId}</td>
+                    <td>${fc.location}</td>
+                    <td>${fc.latitude}</td>
+                    <td>${fc.longitude}</td>
+                    <td class="actions">
+                        <button class="secondary" type="button" data-action="edit" data-id="${fc.id}">Edit</button>
+                        <button class="danger" type="button" data-action="delete" data-id="${fc.id}">Delete</button>
+                    </td>
+                `;
+                fcsTableBody.appendChild(row);
+            });
+        }
+
+        function renderProducts() {
+            productsTableBody.innerHTML = "";
+            productsTableWrap.classList.toggle("hidden", !canManageBusinessData() || !products.length);
+
+            if (!canManageBusinessData()) {
+                setMessage(productsMessage, "Login to view products.");
+                return;
+            }
+
+            if (!products.length) {
+                setMessage(productsMessage, "No products found.");
+                return;
+            }
+
+            setMessage(productsMessage, `${products.length} product(s) found.`);
+
+            products.forEach((product) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${product.id}</td>
+                    <td>${product.name}</td>
+                    <td>${product.productId}</td>
+                    <td>${product.sku}</td>
+                    <td>${product.clientName}</td>
+                    <td>${product.description}</td>
+                    <td>${Number(product.price).toFixed(2)}</td>
+                    <td>${product.quantity}</td>
+                    <td class="actions">
+                        <button class="secondary" type="button" data-action="edit" data-id="${product.id}">Edit</button>
+                        <button class="danger" type="button" data-action="delete" data-id="${product.id}">Delete</button>
+                    </td>
+                `;
+                productsTableBody.appendChild(row);
+            });
+
+            renderOrderItems();
+            renderBatchOrderSelection();
+        }
+
+        function renderInventorySnapshot() {
+            inventoryGrid.innerHTML = "";
+            inventoryGrid.classList.toggle("hidden", !canManageBusinessData() || !inventorySnapshot.length);
+
+            if (!canManageBusinessData()) {
+                setMessage(inventoryMessage, "Login to view inventory snapshot.");
+                return;
+            }
+
+            if (!inventorySnapshot.length) {
+                setMessage(inventoryMessage, "No inventory data found.");
+                return;
+            }
+
+            setMessage(inventoryMessage, `${inventorySnapshot.length} inventory item(s) found.`);
+
+            inventorySnapshot.forEach((product) => {
+                const card = document.createElement("article");
+                card.className = "snapshot-card";
+                card.innerHTML = `
+                    <h3>${product.name}</h3>
+                    <div class="snapshot-meta">SKU: ${product.sku} | Product ID: ${product.productId}</div>
+                    <dl>
+                        <dt>Database ID</dt>
+                        <dd>${product.id}</dd>
+                        <dt>Price</dt>
+                        <dd>${Number(product.price).toFixed(2)}</dd>
+                        <dt>Quantity</dt>
+                        <dd>${product.quantity}</dd>
+                        <dt>Description</dt>
+                        <dd>${product.description}</dd>
+                        <dt>Client</dt>
+                        <dd>${product.clientName}</dd>
+                        <dt>Client Email</dt>
+                        <dd>${product.clientEmail}</dd>
+                        <dt>Organisation</dt>
+                        <dd>${product.clientOrganisationName || ""}</dd>
+                        <dt>Organisation Address</dt>
+                        <dd>${product.clientOrganisationAddress || ""}</dd>
+                        <dt>Client Phone</dt>
+                        <dd>${product.clientPhone}</dd>
+                    </dl>
+                `;
+                inventoryGrid.appendChild(card);
+            });
+        }
+
+        function renderOrders() {
+            ordersTableBody.innerHTML = "";
+            ordersTableWrap.classList.toggle("hidden", !canManageBusinessData() || !orders.length);
+
+            if (!canManageBusinessData()) {
+                setMessage(ordersMessage, "Login to view orders.");
+                return;
+            }
+
+            if (!orders.length) {
+                setMessage(ordersMessage, "No orders found.");
+                return;
+            }
+
+            setMessage(ordersMessage, `${orders.length} order(s) found.`);
+
+            orders.forEach((order) => {
+                const row = document.createElement("tr");
+                const selfPicker = currentUserPicker();
+                const statusCell = order.status === "CANCELLED" || order.status === "DELIVERED"
+                    ? `<span>${order.status}</span>`
+                    : `<select data-role="order-status" data-order-number="${order.orderNumber}">
+                            ${getForwardOnlyStatuses(order.status).map((status) => `
+                                <option value="${status}" ${order.status === status ? "selected" : ""}>${status}</option>
+                            `).join("")}
+                        </select>`;
+                const pickerCell = order.pickerName
+                    ? `${order.pickerName}${order.pickedAt ? ` <br><small>Picked at ${new Date(order.pickedAt).toLocaleString()}</small>` : ""}`
+                    : `<select data-role="picker-id" data-order-number="${order.orderNumber}">
+                            ${renderPickerOptions(order.pickerId || "")}
+                       </select>`;
+                row.innerHTML = `
+                    <td>${order.orderNumber}</td>
+                    <td>${order.clientName}</td>
+                    <td>${order.warehouseId}</td>
+                    <td>${order.fcId}</td>
+                    <td>${statusCell}</td>
+                    <td>${pickerCell}</td>
+                    <td>${order.items.length}</td>
+                    <td>${new Date(order.createdAt).toLocaleString()}</td>
+                    <td class="actions">
+                        <button class="ghost" type="button" data-action="view-detail" data-order-number="${order.orderNumber}">View Details</button>
+                        ${order.status === "CREATED"
+                            ? `<button class="secondary" type="button" data-action="assign-picker" data-order-number="${order.orderNumber}">Assign Picker</button>`
+                            : ""}
+                        ${order.status === "CREATED" && selfPicker
+                            ? `<button class="primary" type="button" data-action="assign-self" data-order-number="${order.orderNumber}">Assign To Me</button>`
+                            : ""}
+                        ${order.status === "ASSIGNED_FOR_PICKING" && order.pickerId
+                            ? `<button class="secondary" type="button" data-action="mark-picked" data-order-number="${order.orderNumber}" data-picker-id="${order.pickerId}">Mark Picked</button>`
+                            : ""}
+                        ${order.status === "CANCELLED" || order.status === "DELIVERED"
+                            ? ""
+                            : `<button class="secondary" type="button" data-action="save-status" data-order-number="${order.orderNumber}">Save Status</button>`}
+                        <button class="danger" type="button" data-action="delete" data-order-number="${order.orderNumber}">Delete</button>
+                    </td>
+                `;
+                ordersTableBody.appendChild(row);
+            });
+        }
+
+        function renderBatches() {
+            batchesTableBody.innerHTML = "";
+            batchesTableWrap.classList.toggle("hidden", !canManageBusinessData() || !batches.length);
+            renderBatchOrderSelection();
+
+            if (!canManageBusinessData()) {
+                setMessage(batchesMessage, "Login to view batches.");
+                return;
+            }
+
+            if (!batches.length) {
+                setMessage(batchesMessage, "No batches found.");
+                return;
+            }
+
+            setMessage(batchesMessage, `${batches.length} batch(es) found.`);
+
+            const selfPicker = currentUserPicker();
+            batches.forEach((batch) => {
+                const row = document.createElement("tr");
+                const firstOrder = batch.orders[0] || {};
+                const pickerCell = batch.status === "UNASSIGNED"
+                    ? `<select data-role="picker-id" data-batch-id="${batch.batchId}">
+                            ${renderPickerOptions(batch.pickerId || "")}
+                       </select>`
+                    : `${batch.pickerName || "Not assigned"}${batch.pickerEmployeeId ? ` <br><small>${batch.pickerEmployeeId}</small>` : ""}`;
+                row.innerHTML = `
+                    <td>${batch.batchId}</td>
+                    <td>${batch.status}</td>
+                    <td>${batch.orderCount}</td>
+                    <td>${firstOrder.warehouseId || ""} / ${firstOrder.fcId || ""}</td>
+                    <td>${pickerCell}</td>
+                    <td>${new Date(batch.createdAt).toLocaleString()}</td>
+                    <td class="actions">
+                        <button class="ghost" type="button" data-action="view-detail" data-id="${batch.batchId}">View Details</button>
+                        <button class="secondary" type="button" data-action="edit" data-id="${batch.batchId}">Edit</button>
+                        ${batch.status === "UNASSIGNED" ? `<button class="secondary" type="button" data-action="assign-picker" data-id="${batch.batchId}">Assign Picker</button>` : ""}
+                        ${batch.status === "UNASSIGNED" && selfPicker ? `<button class="primary" type="button" data-action="assign-self" data-id="${batch.batchId}">Assign To Me</button>` : ""}
+                        ${batch.status === "ASSIGNED" && selfPicker && String(batch.pickerId) === String(selfPicker.id)
+                            ? `<button class="primary" type="button" data-action="mark-picked" data-id="${batch.batchId}">Mark Picked</button>`
+                            : ""}
+                        <button class="danger" type="button" data-action="delete" data-id="${batch.batchId}">Delete</button>
+                    </td>
+                `;
+                batchesTableBody.appendChild(row);
+            });
+        }
+
+        function renderPickers() {
+            pickersTableBody.innerHTML = "";
+            pickersTableWrap.classList.toggle("hidden", !canManageBusinessData() || !pickers.length);
+
+            if (!canManageBusinessData()) {
+                setMessage(pickersMessage, "Login to view pickers.");
+                return;
+            }
+
+            if (!pickers.length) {
+                setMessage(pickersMessage, "No pickers found.");
+                return;
+            }
+
+            setMessage(pickersMessage, `${pickers.length} picker(s) found.`);
+
+            pickers.forEach((picker) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${picker.id}</td>
+                    <td>${picker.name}</td>
+                    <td>${picker.email}</td>
+                    <td>${picker.employeeId}</td>
+                    <td class="actions">
+                        ${canAdministerPickers() ? `<button class="secondary" type="button" data-action="edit" data-id="${picker.id}">Edit</button>` : ""}
+                        ${canAdministerPickers() ? `<button class="danger" type="button" data-action="delete" data-id="${picker.id}">Delete</button>` : ""}
+                    </td>
+                `;
+                pickersTableBody.appendChild(row);
+            });
+        }
+
+        function renderBackOrderAudits() {
+            backOrderAuditTableBody.innerHTML = "";
+            backOrderAuditTableWrap.classList.toggle("hidden", !canManageBusinessData() || !backOrderAudits.length);
+
+            if (!canManageBusinessData()) {
+                setMessage(backOrderAuditMessage, "Login to view back order audits.");
+                return;
+            }
+
+            if (!backOrderAudits.length) {
+                setMessage(backOrderAuditMessage, "No back order audit logs found.");
+                return;
+            }
+
+            setMessage(backOrderAuditMessage, `${backOrderAudits.length} audit log(s) found.`);
+
+            backOrderAudits.forEach((audit) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${audit.id}</td>
+                    <td>${audit.backOrderCount}</td>
+                    <td>${new Date(audit.auditedAt).toLocaleString()}</td>
+                `;
+                backOrderAuditTableBody.appendChild(row);
+            });
+        }
+
+        function renderOrderDetail() {
+            orderDetailGrid.innerHTML = "";
+            orderDetailItemsBody.innerHTML = "";
+            orderDetailCard.classList.toggle("hidden", !selectedOrder);
+            clearOrderDetailButton.classList.toggle("hidden", !selectedOrder);
+
+            if (!canManageBusinessData()) {
+                setMessage(orderDetailMessage, "Login to view order details.");
+                return;
+            }
+
+            if (!selectedOrder) {
+                setMessage(orderDetailMessage, "Select an order to view complete details.");
+                return;
+            }
+
+            setMessage(orderDetailMessage, `Showing complete details for order ${selectedOrder.orderNumber}.`);
+
+            const details = [
+                ["Order Number", selectedOrder.orderNumber],
+                ["Client", selectedOrder.clientName],
+                ["Client ID", selectedOrder.clientId],
+                ["Warehouse ID", selectedOrder.warehouseId],
+                ["FC ID", selectedOrder.fcId],
+                ["FC Location", selectedOrder.fcLocation || ""],
+                ["Status", selectedOrder.status],
+                ["Picker", selectedOrder.pickerName || "Not assigned"],
+                ["Picked At", selectedOrder.pickedAt ? new Date(selectedOrder.pickedAt).toLocaleString() : "Not picked"],
+                ["Bill To Address", selectedOrder.billToAddress],
+                ["Ship To Address", selectedOrder.shipToAddress],
+                ["Created At", new Date(selectedOrder.createdAt).toLocaleString()]
+            ];
+
+            details.forEach(([label, value]) => {
+                const block = document.createElement("div");
+                block.innerHTML = `<strong>${label}</strong><span>${value}</span>`;
+                orderDetailGrid.appendChild(block);
+            });
+
+            selectedOrder.items.forEach((item) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${item.orderNumber}</td>
+                    <td>${item.sku}</td>
+                    <td>${item.productId}</td>
+                    <td>${item.quantity}</td>
+                    <td>${item.fulfilledQuantity}</td>
+                    <td>${item.backOrderedQuantity}</td>
+                    <td>${item.clientId}</td>
+                `;
+                orderDetailItemsBody.appendChild(row);
+            });
+        }
+
+        function renderBatchDetail() {
+            batchDetailGrid.innerHTML = "";
+            batchOrderLifecycleBody.innerHTML = "";
+            batchDetailCard.classList.toggle("hidden", !selectedBatch);
+            clearBatchDetailButton.classList.toggle("hidden", !selectedBatch);
+
+            if (!canManageBusinessData()) {
+                setMessage(batchDetailMessage, "Login to view batch details.");
+                return;
+            }
+
+            if (!selectedBatch) {
+                setMessage(batchDetailMessage, "Select a batch to view complete details.");
+                return;
+            }
+
+            const firstOrder = selectedBatch.orders[0] || {};
+            setMessage(batchDetailMessage, `Showing complete details for batch ${selectedBatch.batchId}.`);
+
+            const details = [
+                ["Batch ID", selectedBatch.batchId],
+                ["Status", selectedBatch.status],
+                ["Order Count", selectedBatch.orderCount],
+                ["Warehouse ID", firstOrder.warehouseId || ""],
+                ["FC ID", firstOrder.fcId || ""],
+                ["FC Location", firstOrder.fcLocation || ""],
+                ["Picker", selectedBatch.pickerName || "Not assigned"],
+                ["Picker Email", selectedBatch.pickerEmail || ""],
+                ["Employee ID", selectedBatch.pickerEmployeeId || ""],
+                ["Created At", new Date(selectedBatch.createdAt).toLocaleString()]
+            ];
+
+            details.forEach(([label, value]) => {
+                const block = document.createElement("div");
+                block.innerHTML = `<strong>${label}</strong><span>${value}</span>`;
+                batchDetailGrid.appendChild(block);
+            });
+
+            const selfPicker = currentUserPicker();
+            getBatchLifecycleOrders(selectedBatch).forEach((order) => {
+                const row = document.createElement("tr");
+                const statusCell = order.status === "CANCELLED" || order.status === "DELIVERED"
+                    ? `<span>${order.status}</span>`
+                    : `<select data-role="batch-order-status" data-order-number="${order.orderNumber}">
+                            ${getForwardOnlyStatuses(order.status).map((status) => `
+                                <option value="${status}" ${order.status === status ? "selected" : ""}>${status}</option>
+                            `).join("")}
+                        </select>`;
+                const pickerCell = order.pickerName
+                    ? `${order.pickerName}${order.pickedAt ? ` <br><small>Picked at ${new Date(order.pickedAt).toLocaleString()}</small>` : ""}`
+                    : `<select data-role="batch-order-picker-id" data-order-number="${order.orderNumber}">
+                            ${renderPickerOptions(order.pickerId || "")}
+                       </select>`;
+
+                row.innerHTML = `
+                    <td>${order.orderNumber}</td>
+                    <td>${order.clientName}</td>
+                    <td>${order.warehouseId}</td>
+                    <td>${order.fcId}</td>
+                    <td>${statusCell}</td>
+                    <td>${pickerCell}</td>
+                    <td>${order.itemCount}</td>
+                    <td>${order.requestedQuantity}</td>
+                    <td>${order.fulfilledQuantity}</td>
+                    <td>${order.backOrderedQuantity}</td>
+                    <td class="actions">
+                        ${order.status === "CANCELLED" || order.status === "DELIVERED"
+                            ? ""
+                            : `<button class="secondary" type="button" data-action="save-status" data-order-number="${order.orderNumber}">Save Status</button>`}
+                    </td>
+                `;
+                batchOrderLifecycleBody.appendChild(row);
+            });
+        }
+
+        async function loadUsers() {
+            if (!canManageUsers()) {
+                users = [];
+                renderUsers();
+                return;
+            }
+
+            users = await request("/users");
+            renderUsers();
+        }
+
+        async function loadClients() {
+            if (!canManageBusinessData()) {
+                clients = [];
+                renderClients();
+                return;
+            }
+
+            clients = await request("/clients");
+            renderClients();
+        }
+
+        async function loadFcs() {
+            if (!canManageBusinessData()) {
+                fcs = [];
+                renderFcs();
+                return;
+            }
+
+            fcs = await request("/fcs");
+            renderFcs();
+        }
+
+        async function loadProducts() {
+            if (!canManageBusinessData()) {
+                products = [];
+                renderProducts();
+                return;
+            }
+
+            products = await request("/products");
+            renderProducts();
+        }
+
+        async function loadInventorySnapshot() {
+            if (!canManageBusinessData()) {
+                inventorySnapshot = [];
+                renderInventorySnapshot();
+                return;
+            }
+
+            inventorySnapshot = await request("/inventory-snapshot");
+            renderInventorySnapshot();
+        }
+
+        async function loadOrders() {
+            if (!canManageBusinessData()) {
+                orders = [];
+                renderOrders();
+                return;
+            }
+
+            orders = await request("/orders");
+            if (selectedOrder) {
+                selectedOrder = orders.find((order) => order.orderNumber === selectedOrder.orderNumber) || null;
+            }
+            renderOrders();
+            renderOrderDetail();
+        }
+
+        async function loadBatches() {
+            if (!canManageBusinessData()) {
+                batches = [];
+                renderBatches();
+                return;
+            }
+
+            batches = await request("/batches");
+            if (selectedBatch) {
+                selectedBatch = batches.find((batch) => String(batch.batchId) === String(selectedBatch.batchId)) || null;
+            }
+            renderBatches();
+            renderBatchDetail();
+        }
+
+        async function loadPickers() {
+            if (!canManageBusinessData()) {
+                pickers = [];
+                renderPickers();
+                return;
+            }
+
+            pickers = await request("/pickers");
+            renderPickers();
+            renderOrders();
+            renderBatches();
+        }
+
+        async function loadBackOrderAudits() {
+            if (!canManageBusinessData()) {
+                backOrderAudits = [];
+                renderBackOrderAudits();
+                return;
+            }
+
+            backOrderAudits = await request("/back-order-audits");
+            renderBackOrderAudits();
+        }
+
+        function resetUserForm() {
+            userForm.reset();
+            document.getElementById("editingUserId").value = "";
+            userRole.value = "ASSOCIATE";
+            userRole.disabled = false;
+            roleField.classList.toggle("hidden", !isSuperAdmin());
+            document.getElementById("userPassword").required = true;
+            adminFormTitle.textContent = "Add User";
+            setMessage(userMessage, "");
+        }
+
+        function resetClientForm() {
+            clientForm.reset();
+            document.getElementById("editingClientId").value = "";
+            clientFormTitle.textContent = "Create Client";
+            setMessage(clientMessage, "");
+        }
+
+        function resetFcForm() {
+            fcForm.reset();
+            document.getElementById("editingFcId").value = "";
+            fcFormTitle.textContent = "Create FC";
+            setMessage(fcMessage, "");
+        }
+
+        function resetProductForm() {
+            productForm.reset();
+            document.getElementById("editingProductId").value = "";
+            productFormTitle.textContent = "Create Product";
+            document.getElementById("productClientId").value = "";
+            setMessage(productMessage, "");
+        }
+
+        function resetOrderForm() {
+            orderForm.reset();
+            document.getElementById("orderStatus").value = "CREATED";
+            document.getElementById("orderClientId").value = "";
+            document.getElementById("orderClientName").value = "";
+            renderOrderItems([{}]);
+            setMessage(orderMessage, "");
+        }
+
+        function resetPickerForm() {
+            pickerForm.reset();
+            document.getElementById("editingPickerId").value = "";
+            pickerFormTitle.textContent = "Create Picker";
+            setMessage(pickerMessage, "");
+        }
+
+        function resetBatchForm() {
+            batchForm.reset();
+            document.getElementById("editingBatchId").value = "";
+            batchFormTitle.textContent = "Create Batch";
+            batchFormHint.textContent = "Only orders in CREATED status are eligible. BACK_ORDER orders are excluded.";
+            renderBatchOrderSelection([]);
+            setMessage(batchMessage, "");
+        }
+
+        loginForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            setMessage(loginMessage, "Logging in...");
+
+            try {
+                const data = await request("/login", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        email: document.getElementById("loginEmail").value,
+                        password: document.getElementById("loginPassword").value
+                    })
+                });
+
+                currentUser = data.user;
+                users = data.users || [];
+                clients = [];
+                fcs = [];
+                products = [];
+                inventorySnapshot = [];
+                orders = [];
+                batches = [];
+                pickers = [];
+                backOrderAudits = [];
+                loginForm.reset();
+                setMessage(loginMessage, "");
+                renderSession();
+                renderUsers();
+                await Promise.all([loadClients(), loadFcs()]);
+                await Promise.all([loadProducts(), loadInventorySnapshot(), loadOrders(), loadBatches(), loadPickers(), loadBackOrderAudits()]);
+            } catch (error) {
+                setMessage(loginMessage, error.message, true);
+            }
+        });
+
+        userForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const id = document.getElementById("editingUserId").value;
+            const password = document.getElementById("userPassword").value;
+            const payload = {
+                name: document.getElementById("userName").value,
+                email: document.getElementById("userEmail").value
+            };
+
+            if (isSuperAdmin()) {
+                payload.role = userRole.value;
+            }
+
+            if (password) {
+                payload.password = password;
+            }
+
+            if (!id && !password) {
+                setMessage(userMessage, "Password is required for new users.", true);
+                return;
+            }
+
+            setMessage(userMessage, "Saving user...");
+
+            try {
+                if (id) {
+                    await request(`/users/${id}`, {
+                        method: "PUT",
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    await request("/register", {
+                        method: "POST",
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                resetUserForm();
+                await loadUsers();
+                setMessage(userMessage, "User saved.");
+            } catch (error) {
+                setMessage(userMessage, error.message, true);
+            }
+        });
+
+        clientForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const id = document.getElementById("editingClientId").value;
+            setMessage(clientMessage, id ? "Updating client..." : "Creating client...");
+
+            try {
+                await request(id ? `/clients/${id}` : "/clients", {
+                    method: id ? "PUT" : "POST",
+                    body: JSON.stringify({
+                        name: document.getElementById("clientName").value,
+                        organisationName: document.getElementById("clientOrganisationName").value,
+                        organisationAddress: document.getElementById("clientOrganisationAddress").value,
+                        email: document.getElementById("clientEmail").value,
+                        phone: document.getElementById("clientPhone").value
+                    })
+                });
+
+                resetClientForm();
+                await loadClients();
+                setMessage(clientMessage, `Client ${id ? "updated" : "created"}.`);
+            } catch (error) {
+                setMessage(clientMessage, error.message, true);
+            }
+        });
+
+        fcForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const id = document.getElementById("editingFcId").value;
+            setMessage(fcMessage, id ? "Updating FC..." : "Creating FC...");
+
+            try {
+                await request(id ? `/fcs/${id}` : "/fcs", {
+                    method: id ? "PUT" : "POST",
+                    body: JSON.stringify({
+                        warehouseId: document.getElementById("fcWarehouseId").value,
+                        fcId: document.getElementById("fcId").value,
+                        location: document.getElementById("fcLocation").value,
+                        latitude: Number(document.getElementById("fcLatitude").value),
+                        longitude: Number(document.getElementById("fcLongitude").value)
+                    })
+                });
+
+                resetFcForm();
+                await loadFcs();
+                setMessage(fcMessage, `FC ${id ? "updated" : "created"}.`);
+            } catch (error) {
+                setMessage(fcMessage, error.message, true);
+            }
+        });
+
+        productForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const id = document.getElementById("editingProductId").value;
+            setMessage(productMessage, id ? "Updating product..." : "Creating product...");
+
+            try {
+                await request(id ? `/products/${id}` : "/products", {
+                    method: id ? "PUT" : "POST",
+                    body: JSON.stringify({
+                        name: document.getElementById("productName").value,
+                        productId: document.getElementById("productBusinessId").value,
+                        sku: document.getElementById("productSku").value,
+                        clientId: Number(document.getElementById("productClientId").value),
+                        description: document.getElementById("productDescription").value,
+                        price: document.getElementById("productPrice").value,
+                        quantity: Number(document.getElementById("productQuantity").value)
+                    })
+                });
+
+                resetProductForm();
+                await Promise.all([loadProducts(), loadInventorySnapshot()]);
+                setMessage(productMessage, `Product ${id ? "updated" : "created"}.`);
+            } catch (error) {
+                setMessage(productMessage, error.message, true);
+            }
+        });
+
+        orderForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const selectedClientId = document.getElementById("orderClientId").value;
+            const itemRows = Array.from(orderItemsContainer.querySelectorAll(".item-row"));
+
+            if (!selectedClientId) {
+                setMessage(orderMessage, "Select a product so the client can be filled automatically.", true);
+                return;
+            }
+
+            if (!document.getElementById("orderFcId").value) {
+                setMessage(orderMessage, "Select an FC.", true);
+                return;
+            }
+
+            const items = itemRows.map((row) => {
+                const productRecordId = row.querySelector("[data-role='order-product']").value;
+                const quantity = Number(row.querySelector("[data-role='order-quantity']").value);
+                const product = products.find((entry) => String(entry.id) === productRecordId);
+                return product ? {
+                    sku: product.sku,
+                    productId: product.productId,
+                    quantity,
+                    clientId: product.clientId
+                } : null;
+            });
+
+            if (items.some((item) => item === null)) {
+                setMessage(orderMessage, "Select a valid product for each order item.", true);
+                return;
+            }
+
+            setMessage(orderMessage, "Creating order...");
+
+            try {
+                const order = await request("/orders", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        orderNumber: document.getElementById("orderNumber").value,
+                        fcId: document.getElementById("orderFcId").value,
+                        clientId: Number(selectedClientId),
+                        billToAddress: document.getElementById("orderBillToAddress").value,
+                        shipToAddress: document.getElementById("orderShipToAddress").value,
+                        status: document.getElementById("orderStatus").value,
+                        items
+                    })
+                });
+
+                resetOrderForm();
+                await Promise.all([loadOrders(), loadProducts(), loadInventorySnapshot()]);
+                const hasBackOrderedItems = order.items.some((item) => item.backOrderedQuantity > 0);
+                if (order.status === "BACK_ORDER") {
+                    setMessage(orderMessage, "Order created with no immediately fulfillable quantity. Entire request is in back order.");
+                } else if (hasBackOrderedItems) {
+                    setMessage(orderMessage, "Order created with partial fulfillment. Remaining quantity moved to back order.");
+                } else {
+                    setMessage(orderMessage, "Order created.");
+                }
+            } catch (error) {
+                setMessage(orderMessage, error.message, true);
+            }
+        });
+
+        batchForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const batchId = document.getElementById("editingBatchId").value;
+            const orderNumbers = Array.from(batchOrderSelection.querySelectorAll("input:checked")).map((input) => input.value);
+
+            if (!orderNumbers.length) {
+                setMessage(batchMessage, "Select at least one order for the batch.", true);
+                return;
+            }
+
+            setMessage(batchMessage, batchId ? "Updating batch..." : "Creating batch...");
+
+            try {
+                await request(batchId ? `/batches/${batchId}` : "/batches", {
+                    method: batchId ? "PUT" : "POST",
+                    body: JSON.stringify({ orderNumbers })
+                });
+
+                resetBatchForm();
+                await Promise.all([loadOrders(), loadBatches()]);
+                setMessage(batchMessage, `Batch ${batchId ? "updated" : "created"}.`);
+            } catch (error) {
+                setMessage(batchMessage, error.message, true);
+            }
+        });
+
+        pickerForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const id = document.getElementById("editingPickerId").value;
+            setMessage(pickerMessage, id ? "Updating picker..." : "Creating picker...");
+
+            try {
+                await request(id ? `/pickers/${id}` : "/pickers", {
+                    method: id ? "PUT" : "POST",
+                    body: JSON.stringify({
+                        name: document.getElementById("pickerName").value,
+                        email: document.getElementById("pickerEmail").value,
+                        employeeId: document.getElementById("pickerEmployeeId").value
+                    })
+                });
+
+                resetPickerForm();
+                await loadPickers();
+                setMessage(pickerMessage, `Picker ${id ? "updated" : "created"}.`);
+            } catch (error) {
+                setMessage(pickerMessage, error.message, true);
+            }
+        });
+
+        usersTableBody.addEventListener("click", async (event) => {
+            const button = event.target.closest("button");
+            if (!button) {
+                return;
+            }
+
+            const user = users.find((item) => String(item.id) === button.dataset.id);
+            if (!user) {
+                return;
+            }
+
+            if (button.dataset.action === "edit") {
+                document.getElementById("editingUserId").value = user.id;
+                document.getElementById("userName").value = user.name;
+                document.getElementById("userEmail").value = user.email;
+                userRole.value = user.role;
+                userRole.disabled = user.role === "SUPER_ADMIN";
+                roleField.classList.toggle("hidden", !isSuperAdmin());
+                document.getElementById("userPassword").value = "";
+                document.getElementById("userPassword").required = false;
+                adminFormTitle.textContent = "Update User";
+                setMessage(userMessage, isSuperAdmin()
+                    ? "Leave password blank to keep the current password."
+                    : "Leave password blank to keep the current password. Roles are managed by super admin.");
+                return;
+            }
+
+            if (button.dataset.action === "delete" && confirm(`Delete ${user.name}?`)) {
+                try {
+                    await request(`/users/${user.id}`, { method: "DELETE" });
+                    await loadUsers();
+                    setMessage(userMessage, "User deleted.");
+                } catch (error) {
+                    setMessage(userMessage, error.message, true);
+                }
+            }
+        });
+
+        clientsTableBody.addEventListener("click", async (event) => {
+            const button = event.target.closest("button");
+            if (!button) {
+                return;
+            }
+
+            const client = clients.find((item) => String(item.id) === button.dataset.id);
+            if (!client) {
+                return;
+            }
+
+            if (button.dataset.action === "edit") {
+                document.getElementById("editingClientId").value = client.id;
+                document.getElementById("clientName").value = client.name;
+                document.getElementById("clientOrganisationName").value = client.organisationName || "";
+                document.getElementById("clientOrganisationAddress").value = client.organisationAddress || "";
+                document.getElementById("clientEmail").value = client.email;
+                document.getElementById("clientPhone").value = client.phone;
+                clientFormTitle.textContent = "Update Client";
+                setMessage(clientMessage, "Edit the client details and save.");
+                return;
+            }
+
+            if (button.dataset.action === "delete" && confirm(`Delete ${client.name}?`)) {
+                try {
+                    await request(`/clients/${client.id}`, { method: "DELETE" });
+                    await loadClients();
+                    setMessage(clientMessage, "Client deleted.");
+                } catch (error) {
+                    setMessage(clientMessage, error.message, true);
+                }
+            }
+        });
+
+        fcsTableBody.addEventListener("click", async (event) => {
+            const button = event.target.closest("button");
+            if (!button) {
+                return;
+            }
+
+            const fc = fcs.find((item) => String(item.id) === button.dataset.id);
+            if (!fc) {
+                return;
+            }
+
+            if (button.dataset.action === "edit") {
+                document.getElementById("editingFcId").value = fc.id;
+                document.getElementById("fcWarehouseId").value = fc.warehouseId;
+                document.getElementById("fcId").value = fc.fcId;
+                document.getElementById("fcLocation").value = fc.location;
+                document.getElementById("fcLatitude").value = fc.latitude;
+                document.getElementById("fcLongitude").value = fc.longitude;
+                fcFormTitle.textContent = "Update FC";
+                setMessage(fcMessage, "Edit the FC details and save.");
+                return;
+            }
+
+            if (button.dataset.action === "delete" && confirm(`Delete FC ${fc.fcId}?`)) {
+                try {
+                    await request(`/fcs/${fc.id}`, { method: "DELETE" });
+                    await loadFcs();
+                    setMessage(fcMessage, "FC deleted.");
+                } catch (error) {
+                    setMessage(fcMessage, error.message, true);
+                }
+            }
+        });
+
+        productsTableBody.addEventListener("click", async (event) => {
+            const button = event.target.closest("button");
+            if (!button) {
+                return;
+            }
+
+            const product = products.find((item) => String(item.id) === button.dataset.id);
+            if (!product) {
+                return;
+            }
+
+            if (button.dataset.action === "edit") {
+                document.getElementById("editingProductId").value = product.id;
+                document.getElementById("productName").value = product.name;
+                document.getElementById("productBusinessId").value = product.productId;
+                document.getElementById("productSku").value = product.sku;
+                document.getElementById("productClientId").value = product.clientId;
+                document.getElementById("productDescription").value = product.description;
+                document.getElementById("productPrice").value = product.price;
+                document.getElementById("productQuantity").value = product.quantity;
+                productFormTitle.textContent = "Update Product";
+                setMessage(productMessage, "Edit the product details and save.");
+                return;
+            }
+
+            if (button.dataset.action === "delete" && confirm(`Delete ${product.name}?`)) {
+                try {
+                    await request(`/products/${product.id}`, { method: "DELETE" });
+                    await Promise.all([loadProducts(), loadInventorySnapshot()]);
+                    setMessage(productMessage, "Product deleted.");
+                } catch (error) {
+                    setMessage(productMessage, error.message, true);
+                }
+            }
+        });
+
+        ordersTableBody.addEventListener("click", async (event) => {
+            const button = event.target.closest("button");
+            if (!button) {
+                return;
+            }
+
+            const orderNumber = button.dataset.orderNumber;
+            if (!orderNumber) {
+                return;
+            }
+
+            if (button.dataset.action === "view-detail") {
+                selectedOrder = orders.find((order) => order.orderNumber === orderNumber) || null;
+                renderOrderDetail();
+                return;
+            }
+
+            if (button.dataset.action === "save-status") {
+                const select = ordersTableBody.querySelector(`[data-role='order-status'][data-order-number='${orderNumber}']`);
+                try {
+                    await request(`/orders/${orderNumber}/status`, {
+                        method: "PUT",
+                        body: JSON.stringify({ status: select.value })
+                    });
+                    await Promise.all([loadOrders(), loadProducts(), loadInventorySnapshot()]);
+                    setMessage(ordersMessage, `Order ${orderNumber} status updated.`);
+                } catch (error) {
+                    setMessage(ordersMessage, error.message, true);
+                }
+                return;
+            }
+
+            if (button.dataset.action === "assign-picker") {
+                const select = ordersTableBody.querySelector(`[data-role='picker-id'][data-order-number='${orderNumber}']`);
+                if (!select || !select.value) {
+                    setMessage(ordersMessage, "Select a picker before assigning the order.", true);
+                    return;
+                }
+
+                try {
+                    await request(`/orders/${orderNumber}/assign/${select.value}`, { method: "POST" });
+                    await loadOrders();
+                    setMessage(ordersMessage, `Picker assigned to order ${orderNumber}.`);
+                } catch (error) {
+                    setMessage(ordersMessage, error.message, true);
+                }
+                return;
+            }
+
+            if (button.dataset.action === "assign-self") {
+                try {
+                    await request(`/orders/${orderNumber}/assign-self`, { method: "POST" });
+                    await loadOrders();
+                    setMessage(ordersMessage, `Order ${orderNumber} assigned to you.`);
+                } catch (error) {
+                    setMessage(ordersMessage, error.message, true);
+                }
+                return;
+            }
+
+            if (button.dataset.action === "mark-picked") {
+                try {
+                    await request(`/orders/${orderNumber}/pick/${button.dataset.pickerId}`, { method: "POST" });
+                    await loadOrders();
+                    setMessage(ordersMessage, `Order ${orderNumber} marked as picked.`);
+                } catch (error) {
+                    setMessage(ordersMessage, error.message, true);
+                }
+                return;
+            }
+
+            if (button.dataset.action === "delete" && confirm(`Delete order ${orderNumber}?`)) {
+                try {
+                    await request(`/orders/${orderNumber}`, { method: "DELETE" });
+                    await Promise.all([loadOrders(), loadProducts(), loadInventorySnapshot()]);
+                    setMessage(ordersMessage, `Order ${orderNumber} deleted.`);
+                } catch (error) {
+                    setMessage(ordersMessage, error.message, true);
+                }
+            }
+        });
+
+        batchesTableBody.addEventListener("click", async (event) => {
+            const button = event.target.closest("button");
+            if (!button) {
+                return;
+            }
+
+            const batch = batches.find((item) => String(item.batchId) === button.dataset.id);
+            if (!batch) {
+                return;
+            }
+
+            if (button.dataset.action === "view-detail") {
+                try {
+                    selectedBatch = await request(`/batches/${batch.batchId}`);
+                    renderBatchDetail();
+                } catch (error) {
+                    setMessage(batchesMessage, error.message, true);
+                }
+                return;
+            }
+
+            if (button.dataset.action === "edit") {
+                if (batch.status !== "UNASSIGNED") {
+                    setMessage(batchesMessage, "Only UNASSIGNED batches can be updated.", true);
+                    return;
+                }
+                document.getElementById("editingBatchId").value = batch.batchId;
+                batchFormTitle.textContent = `Update Batch #${batch.batchId}`;
+                batchFormHint.textContent = `Editing batch ${batch.batchId}. Only UNASSIGNED batches can have membership updated.`;
+                renderBatchOrderSelection(getUniqueBatchOrders(batch).map((order) => order.orderNumber));
+                setMessage(batchMessage, "Adjust the batch membership and save.");
+                return;
+            }
+
+            if (button.dataset.action === "assign-picker") {
+                const select = batchesTableBody.querySelector(`[data-role='picker-id'][data-batch-id='${batch.batchId}']`);
+                if (!select || !select.value) {
+                    setMessage(batchesMessage, "Select a picker before assigning the batch.", true);
+                    return;
+                }
+
+                try {
+                    await request(`/batches/${batch.batchId}/assign/${select.value}`, { method: "POST" });
+                    await Promise.all([loadBatches(), loadOrders()]);
+                    setMessage(batchesMessage, `Picker assigned to batch ${batch.batchId}.`);
+                } catch (error) {
+                    setMessage(batchesMessage, error.message, true);
+                }
+                return;
+            }
+
+            if (button.dataset.action === "assign-self") {
+                try {
+                    await request(`/batches/${batch.batchId}/assign-self`, { method: "POST" });
+                    await Promise.all([loadBatches(), loadOrders()]);
+                    setMessage(batchesMessage, `Batch ${batch.batchId} assigned to you.`);
+                } catch (error) {
+                    setMessage(batchesMessage, error.message, true);
+                }
+                return;
+            }
+
+            if (button.dataset.action === "mark-picked") {
+                try {
+                    await request(`/batches/${batch.batchId}/pick-self`, { method: "POST" });
+                    await Promise.all([loadBatches(), loadOrders()]);
+                    setMessage(batchesMessage, `Batch ${batch.batchId} marked as picked.`);
+                } catch (error) {
+                    setMessage(batchesMessage, error.message, true);
+                }
+                return;
+            }
+
+            if (button.dataset.action === "delete" && confirm(`Delete batch ${batch.batchId}?`)) {
+                try {
+                    await request(`/batches/${batch.batchId}`, { method: "DELETE" });
+                    if (selectedBatch && String(selectedBatch.batchId) === String(batch.batchId)) {
+                        selectedBatch = null;
+                    }
+                    await Promise.all([loadBatches(), loadOrders()]);
+                    renderBatchDetail();
+                    setMessage(batchesMessage, `Batch ${batch.batchId} deleted.`);
+                } catch (error) {
+                    setMessage(batchesMessage, error.message, true);
+                }
+            }
+        });
+
+        batchOrderLifecycleBody.addEventListener("click", async (event) => {
+            const button = event.target.closest("button");
+            if (!button || !selectedBatch) {
+                return;
+            }
+
+            const orderNumber = button.dataset.orderNumber;
+            if (!orderNumber) {
+                return;
+            }
+
+            if (button.dataset.action === "save-status") {
+                const select = batchOrderLifecycleBody.querySelector(`[data-role='batch-order-status'][data-order-number='${orderNumber}']`);
+                try {
+                    await request(`/orders/${orderNumber}/status`, {
+                        method: "PUT",
+                        body: JSON.stringify({ status: select.value })
+                    });
+                    await Promise.all([loadOrders(), loadBatches()]);
+                    if (selectedBatch) {
+                        selectedBatch = await request(`/batches/${selectedBatch.batchId}`);
+                    }
+                    renderBatchDetail();
+                    setMessage(batchDetailMessage, `Order ${orderNumber} status updated inside batch ${selectedBatch ? selectedBatch.batchId : ""}.`);
+                } catch (error) {
+                    setMessage(batchDetailMessage, error.message, true);
+                }
+                return;
+            }
+
+            if (button.dataset.action === "assign-picker") {
+                const select = batchOrderLifecycleBody.querySelector(`[data-role='batch-order-picker-id'][data-order-number='${orderNumber}']`);
+                if (!select || !select.value) {
+                    setMessage(batchDetailMessage, "Select a picker before assigning the order.", true);
+                    return;
+                }
+
+                try {
+                    await request(`/orders/${orderNumber}/assign/${select.value}`, { method: "POST" });
+                    await Promise.all([loadOrders(), loadBatches()]);
+                    if (selectedBatch) {
+                        selectedBatch = await request(`/batches/${selectedBatch.batchId}`);
+                    }
+                    renderBatchDetail();
+                    setMessage(batchDetailMessage, `Picker assigned to order ${orderNumber}.`);
+                } catch (error) {
+                    setMessage(batchDetailMessage, error.message, true);
+                }
+                return;
+            }
+
+            if (button.dataset.action === "assign-self") {
+                try {
+                    await request(`/orders/${orderNumber}/assign-self`, { method: "POST" });
+                    await Promise.all([loadOrders(), loadBatches()]);
+                    if (selectedBatch) {
+                        selectedBatch = await request(`/batches/${selectedBatch.batchId}`);
+                    }
+                    renderBatchDetail();
+                    setMessage(batchDetailMessage, `Order ${orderNumber} assigned to you.`);
+                } catch (error) {
+                    setMessage(batchDetailMessage, error.message, true);
+                }
+                return;
+            }
+
+            if (button.dataset.action === "mark-picked") {
+                try {
+                    await request(`/orders/${orderNumber}/pick/${button.dataset.pickerId}`, { method: "POST" });
+                    await Promise.all([loadOrders(), loadBatches()]);
+                    if (selectedBatch) {
+                        selectedBatch = await request(`/batches/${selectedBatch.batchId}`);
+                    }
+                    renderBatchDetail();
+                    setMessage(batchDetailMessage, `Order ${orderNumber} marked as picked.`);
+                } catch (error) {
+                    setMessage(batchDetailMessage, error.message, true);
+                }
+            }
+        });
+
+        pickersTableBody.addEventListener("click", async (event) => {
+            const button = event.target.closest("button");
+            if (!button) {
+                return;
+            }
+
+            const picker = pickers.find((item) => String(item.id) === button.dataset.id);
+            if (!picker) {
+                return;
+            }
+
+            if (button.dataset.action === "edit") {
+                document.getElementById("editingPickerId").value = picker.id;
+                document.getElementById("pickerName").value = picker.name;
+                document.getElementById("pickerEmail").value = picker.email;
+                document.getElementById("pickerEmployeeId").value = picker.employeeId;
+                pickerFormTitle.textContent = "Update Picker";
+                setMessage(pickerMessage, "Edit the picker details and save.");
+                return;
+            }
+
+            if (button.dataset.action === "delete" && confirm(`Delete picker ${picker.name}?`)) {
+                try {
+                    await request(`/pickers/${picker.id}`, { method: "DELETE" });
+                    await loadPickers();
+                    setMessage(pickerMessage, "Picker deleted.");
+                } catch (error) {
+                    setMessage(pickerMessage, error.message, true);
+                }
+            }
+        });
+
+        document.getElementById("addOrderItemButton").addEventListener("click", () => {
+            orderItemsContainer.appendChild(createOrderItemRow());
+        });
+
+        document.getElementById("orderClientId").addEventListener("change", () => {
+            renderOrderItems();
+        });
+
+        orderItemsContainer.addEventListener("change", (event) => {
+            if (event.target.dataset.role !== "order-product") {
+                return;
+            }
+
+            const selectedProduct = products.find((entry) => String(entry.id) === event.target.value);
+            if (!selectedProduct) {
+                const selectedValues = Array.from(orderItemsContainer.querySelectorAll("[data-role='order-product']"))
+                    .map((select) => products.find((entry) => String(entry.id) === select.value))
+                    .filter(Boolean);
+                const currentClient = selectedValues[0];
+                document.getElementById("orderClientId").value = currentClient ? currentClient.clientId : "";
+                document.getElementById("orderClientName").value = currentClient ? currentClient.clientName : "";
+                renderOrderItems();
+                return;
+            }
+
+            document.getElementById("orderClientId").value = selectedProduct.clientId;
+            document.getElementById("orderClientName").value = selectedProduct.clientName;
+            renderOrderItems();
+        });
+
+        orderItemsContainer.addEventListener("click", (event) => {
+            const button = event.target.closest("button");
+            if (!button || button.dataset.role !== "remove-order-item") {
+                return;
+            }
+
+            const row = button.closest(".item-row");
+            if (orderItemsContainer.children.length === 1) {
+                row.querySelector("[data-role='order-product']").value = "";
+                row.querySelector("[data-role='order-quantity']").value = 1;
+                return;
+            }
+
+            row.remove();
+        });
+
+        logoutButton.addEventListener("click", () => {
+            request("/logout", { method: "POST" }).catch(() => {});
+            currentUser = null;
+            users = [];
+            clients = [];
+            fcs = [];
+            products = [];
+            inventorySnapshot = [];
+            orders = [];
+            batches = [];
+            pickers = [];
+            backOrderAudits = [];
+            selectedOrder = null;
+            selectedBatch = null;
+            resetUserForm();
+            resetClientForm();
+            resetFcForm();
+            resetProductForm();
+            resetOrderForm();
+            resetPickerForm();
+            resetBatchForm();
+            renderSession();
+            renderUsers();
+            renderClients();
+            renderFcs();
+            renderProducts();
+            renderInventorySnapshot();
+            renderOrders();
+            renderBatches();
+            renderPickers();
+            renderBackOrderAudits();
+            renderOrderDetail();
+            renderBatchDetail();
+        });
+
+        refreshButton.addEventListener("click", async () => {
+            try {
+                await loadUsers();
+                setMessage(usersMessage, `${users.length} user(s) found.`);
+            } catch (error) {
+                setMessage(usersMessage, error.message, true);
+            }
+        });
+
+        refreshClientsButton.addEventListener("click", async () => {
+            try {
+                await loadClients();
+            } catch (error) {
+                setMessage(clientsMessage, error.message, true);
+            }
+        });
+
+        refreshFcsButton.addEventListener("click", async () => {
+            try {
+                await loadFcs();
+            } catch (error) {
+                setMessage(fcsMessage, error.message, true);
+            }
+        });
+
+        refreshProductsButton.addEventListener("click", async () => {
+            try {
+                await loadProducts();
+            } catch (error) {
+                setMessage(productsMessage, error.message, true);
+            }
+        });
+
+        refreshInventoryButton.addEventListener("click", async () => {
+            try {
+                await loadInventorySnapshot();
+            } catch (error) {
+                setMessage(inventoryMessage, error.message, true);
+            }
+        });
+
+        refreshOrdersButton.addEventListener("click", async () => {
+            try {
+                await loadOrders();
+            } catch (error) {
+                setMessage(ordersMessage, error.message, true);
+            }
+        });
+
+        refreshBatchesButton.addEventListener("click", async () => {
+            try {
+                await loadBatches();
+            } catch (error) {
+                setMessage(batchesMessage, error.message, true);
+            }
+        });
+
+        refreshBatchFormButton.addEventListener("click", async () => {
+            try {
+                await Promise.all([loadOrders(), loadBatches()]);
+                setMessage(batchMessage, "Eligible batch orders refreshed.");
+            } catch (error) {
+                setMessage(batchMessage, error.message, true);
+            }
+        });
+
+        refreshPickersButton.addEventListener("click", async () => {
+            try {
+                await loadPickers();
+            } catch (error) {
+                setMessage(pickersMessage, error.message, true);
+            }
+        });
+
+        refreshBackOrderAuditButton.addEventListener("click", async () => {
+            try {
+                await loadBackOrderAudits();
+            } catch (error) {
+                setMessage(backOrderAuditMessage, error.message, true);
+            }
+        });
+
+        clearOrderDetailButton.addEventListener("click", () => {
+            selectedOrder = null;
+            renderOrderDetail();
+        });
+
+        clearBatchDetailButton.addEventListener("click", () => {
+            selectedBatch = null;
+            renderBatchDetail();
+        });
+
+        cancelEditButton.addEventListener("click", resetUserForm);
+        cancelClientEditButton.addEventListener("click", resetClientForm);
+        cancelFcEditButton.addEventListener("click", resetFcForm);
+        cancelProductEditButton.addEventListener("click", resetProductForm);
+        cancelPickerEditButton.addEventListener("click", resetPickerForm);
+        cancelBatchEditButton.addEventListener("click", resetBatchForm);
+        document.getElementById("selectAllBatchOrdersButton").addEventListener("click", () => {
+            batchOrderSelection.querySelectorAll("input[type='checkbox']").forEach((input) => {
+                input.checked = true;
+            });
+        });
+
+        renderSession();
+        renderUsers();
+        renderClients();
+        renderFcs();
+        renderProducts();
+        renderInventorySnapshot();
+        renderOrders();
+        renderBatches();
+        renderPickers();
+        renderBackOrderAudits();
+        renderOrderDetail();
+        renderBatchDetail();
+        resetOrderForm();
+        resetPickerForm();
+        resetBatchForm();
+    </script>
+</body>
+</html>
