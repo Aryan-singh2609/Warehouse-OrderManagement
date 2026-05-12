@@ -23,7 +23,7 @@ public class Picker {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String employeeId;
 
     protected Picker() {

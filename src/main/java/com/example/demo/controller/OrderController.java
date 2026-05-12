@@ -67,6 +67,21 @@ public class OrderController extends SessionControllerSupport {
         return orderService.getOrders(userId);
     }
 
+    @GetMapping("/orders/picker-history")
+    @Operation(summary = "List picker order history", description = "Returns orders that were assigned to or picked by the authenticated picker.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Picker order history returned",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = OrderResponse.class)))),
+            @ApiResponse(responseCode = "401", description = "Login required",
+                    content = @Content(schema = @Schema(implementation = com.example.demo.dto.ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Logged-in user is not registered as a picker",
+                    content = @Content(schema = @Schema(implementation = com.example.demo.dto.ErrorResponse.class)))
+    })
+    public List<OrderResponse> getPickerOrderHistory(HttpSession session) {
+        long userId = requireLogin(session);
+        return orderService.getPickerOrderHistory(userId);
+    }
+
     @GetMapping("/back-order-audits")
     @Operation(summary = "List back-order audits", description = "Returns the historical audit entries for back-ordered inventory.")
     @ApiResponses({
@@ -114,8 +129,8 @@ public class OrderController extends SessionControllerSupport {
                     content = @Content(schema = @Schema(implementation = com.example.demo.dto.ErrorResponse.class)))
     })
     public OrderResponse assignOrder(@PathVariable String orderNumber, @PathVariable long pickerId, HttpSession session) {
-        requireLogin(session);
-        return orderService.assignOrder(orderNumber, pickerId);
+        long userId = requireLogin(session);
+        return orderService.assignOrder(orderNumber, pickerId, userId);
     }
 
     @PostMapping("/orders/{orderNumber}/assign-self")
@@ -148,8 +163,27 @@ public class OrderController extends SessionControllerSupport {
                     content = @Content(schema = @Schema(implementation = com.example.demo.dto.ErrorResponse.class)))
     })
     public OrderResponse markOrderPicked(@PathVariable String orderNumber, @PathVariable long pickerId, HttpSession session) {
-        requireLogin(session);
-        return orderService.markOrderPicked(orderNumber, pickerId);
+        long userId = requireLogin(session);
+        return orderService.markOrderPicked(orderNumber, pickerId, userId);
+    }
+
+    @PostMapping("/orders/{orderNumber}/pick-self")
+    @Operation(summary = "Mark your assigned order as picked", description = "Marks the order as picked by the authenticated picker.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Order marked as picked",
+                    content = @Content(schema = @Schema(implementation = OrderResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Login required",
+                    content = @Content(schema = @Schema(implementation = com.example.demo.dto.ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Logged-in user is not allowed to pick this order",
+                    content = @Content(schema = @Schema(implementation = com.example.demo.dto.ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Order not found",
+                    content = @Content(schema = @Schema(implementation = com.example.demo.dto.ErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Order cannot be picked in its current state",
+                    content = @Content(schema = @Schema(implementation = com.example.demo.dto.ErrorResponse.class)))
+    })
+    public OrderResponse markOrderPickedByActor(@PathVariable String orderNumber, HttpSession session) {
+        long userId = requireLogin(session);
+        return orderService.markOrderPickedByActor(orderNumber, userId);
     }
 
     @PostMapping("/orders/{orderNumber}/ship")

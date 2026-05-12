@@ -54,13 +54,16 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
         }
 
-        List<UserResponse> users = user.getRole() == Role.ASSOCIATE ? Collections.emptyList() : getUsers();
+        List<UserResponse> users = user.getRole() == Role.ASSOCIATE || user.getRole() == Role.PICKER
+                ? Collections.emptyList()
+                : getUsers();
         return new LoginResponse(UserResponse.from(user), users);
     }
 
     public List<UserResponse> getUsers() {
         return userRepository.findAll()
                 .stream()
+                .filter(user -> user.getRole() != Role.PICKER)
                 .map(UserResponse::from)
                 .toList();
     }
@@ -72,6 +75,10 @@ public class UserService {
 
         if (actorRole != Role.SUPER_ADMIN && user.getRole() == Role.SUPER_ADMIN) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only super admin can update the super admin account");
+        }
+
+        if (user.getRole() == Role.PICKER) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Picker accounts must be managed from the picker API");
         }
 
         userRepository.findByEmailIgnoreCase(request.getEmail())
@@ -98,6 +105,10 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Super admin account cannot be deleted");
         }
 
+        if (user.getRole() == Role.PICKER) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Picker accounts must be managed from the picker API");
+        }
+
         userRepository.deleteById(id);
     }
 
@@ -111,6 +122,7 @@ public class UserService {
         }
 
         Role requestedRole = request.getRole() == null ? Role.ASSOCIATE : request.getRole();
+        validateManagedUserRole(requestedRole);
         validateSuperAdminRole(requestedRole, request.getEmail(), null);
         return requestedRole;
     }
@@ -121,8 +133,15 @@ public class UserService {
         }
 
         Role requestedRole = request.getRole() == null ? user.getRole() : request.getRole();
+        validateManagedUserRole(requestedRole);
         validateSuperAdminRole(requestedRole, request.getEmail(), user.getId());
         return requestedRole;
+    }
+
+    private void validateManagedUserRole(Role role) {
+        if (role == Role.PICKER) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Picker accounts must be created from the picker API");
+        }
     }
 
     private void validateSuperAdminRole(Role role, String email, Long userId) {

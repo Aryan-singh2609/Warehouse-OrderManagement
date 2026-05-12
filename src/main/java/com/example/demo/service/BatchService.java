@@ -28,10 +28,9 @@ import org.springframework.web.server.ResponseStatusException;
 public class BatchService {
 
     private static final List<BatchStatus> ACTIVE_BATCH_STATUSES = List.of(
-            BatchStatus.UNASSIGNED,
+            BatchStatus.CREATED,
             BatchStatus.ASSIGNED,
-            BatchStatus.PICKED,
-            BatchStatus.SHIPPED
+            BatchStatus.PICKED
     );
 
     private final BatchInfoRepository batchInfoRepository;
@@ -59,7 +58,7 @@ public class BatchService {
         requireOrderManager(actorId);
         List<OrderInfo> orders = resolveOrdersForBatch(request.getOrderNumbers(), null);
 
-        BatchInfo batchInfo = new BatchInfo(BatchStatus.UNASSIGNED);
+        BatchInfo batchInfo = new BatchInfo(BatchStatus.CREATED);
         populateBatch(batchInfo, orders);
 
         return BatchResponse.from(batchInfoRepository.save(batchInfo));
@@ -94,12 +93,16 @@ public class BatchService {
 
     @Transactional
     public BatchResponse assignBatch(long batchId, long pickerId, long actorId) {
-        requireLogin(actorId);
+        User actor = requireLogin(actorId);
         BatchInfo batchInfo = getBatch(batchId);
         ensureAssignable(batchInfo);
 
         Picker picker = pickerRepository.findById(pickerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Picker not found"));
+
+        if (actor.getRole() == Role.PICKER && !picker.getEmail().equalsIgnoreCase(actor.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Pickers can only assign batches to themselves");
+        }
 
         batchInfo.assignPicker(picker);
         syncOrdersForAssignment(batchInfo, picker);
@@ -157,12 +160,11 @@ public class BatchService {
         requireOrderManager(actorId);
         BatchInfo batchInfo = getBatch(batchId);
 
-        if (batchInfo.getStatus() == BatchStatus.ASSIGNED) {
-            for (OrderInfo orderInfo : getOrdersInBatch(batchInfo)) {
-                if (orderInfo.getStatus() == OrderStatus.ASSIGNED_FOR_PICKING) {
-                    orderInfo.clearPickerAssignment();
-                }
-            }
+        if (batchInfo.getStatus() != BatchStatus.CREATED) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Assigned or picked batches cannot be deleted because picker assignments cannot be removed"
+            );
         }
 
         batchInfoRepository.delete(batchInfo);
@@ -267,14 +269,14 @@ public class BatchService {
     }
 
     private void ensureAssignable(BatchInfo batchInfo) {
-        if (batchInfo.getStatus() != BatchStatus.UNASSIGNED) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only unassigned batches can be claimed");
+        if (batchInfo.getStatus() != BatchStatus.CREATED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only created batches can be claimed");
         }
     }
 
     private void ensureEditable(BatchInfo batchInfo) {
-        if (batchInfo.getStatus() != BatchStatus.UNASSIGNED) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Assigned or picked batches cannot be updated");
+        if (batchInfo.getStatus() != BatchStatus.CREATED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only created batches can be updated");
         }
     }
 

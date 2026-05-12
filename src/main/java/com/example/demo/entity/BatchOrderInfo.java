@@ -59,6 +59,18 @@ public class BatchOrderInfo {
     @Column(nullable = false)
     private OrderStatus orderStatus;
 
+    @Column
+    private Long pickerId;
+
+    @Column
+    private String pickerName;
+
+    @Column
+    private String pickerEmail;
+
+    @Column
+    private String pickerEmployeeId;
+
     @Column(nullable = false)
     private String sku;
 
@@ -138,6 +150,22 @@ public class BatchOrderInfo {
         return sku;
     }
 
+    public Long getPickerId() {
+        return pickerId;
+    }
+
+    public String getPickerName() {
+        return pickerName;
+    }
+
+    public String getPickerEmail() {
+        return pickerEmail;
+    }
+
+    public String getPickerEmployeeId() {
+        return pickerEmployeeId;
+    }
+
     public String getProductId() {
         return productId;
     }
@@ -170,6 +198,10 @@ public class BatchOrderInfo {
         this.billToAddress = orderInfo.getBillToAddress();
         this.shipToAddress = orderInfo.getShipToAddress();
         this.orderStatus = orderInfo.getStatus();
+        this.pickerId = orderInfo.getPicker() == null ? null : orderInfo.getPicker().getId();
+        this.pickerName = orderInfo.getPicker() == null ? null : orderInfo.getPicker().getName();
+        this.pickerEmail = orderInfo.getPicker() == null ? null : orderInfo.getPicker().getEmail();
+        this.pickerEmployeeId = orderInfo.getPicker() == null ? null : orderInfo.getPicker().getEmployeeId();
         this.sku = item.getSku();
         this.productId = item.getProductId();
         this.quantity = item.getQuantity();

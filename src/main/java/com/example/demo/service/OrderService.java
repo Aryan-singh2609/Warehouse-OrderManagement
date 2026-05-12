@@ -1,5 +1,17 @@
 package com.example.demo.service;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.example.demo.dto.BackOrderAuditResponse;
 import com.example.demo.dto.OrderItemRequest;
 import com.example.demo.dto.OrderRequest;
@@ -17,9 +29,9 @@ import com.example.demo.entity.Picker;
 import com.example.demo.entity.Product;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
-import com.example.demo.repository.BatchInfoRepository;
 import com.example.demo.repository.BackOrderAuditRepository;
 import com.example.demo.repository.BackOrderRepository;
+import com.example.demo.repository.BatchInfoRepository;
 import com.example.demo.repository.BatchOrderInfoRepository;
 import com.example.demo.repository.ClientRepository;
 import com.example.demo.repository.FcInfoRepository;
@@ -27,26 +39,15 @@ import com.example.demo.repository.OrderInfoRepository;
 import com.example.demo.repository.PickerRepository;
 import com.example.demo.repository.ProductRepository;
 import com.example.demo.repository.UserRepository;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class OrderService {
 
     private static final String ORDER_ID_PREFIX = "ORDID";
     private static final List<BatchStatus> ACTIVE_BATCH_STATUSES = List.of(
-            BatchStatus.UNASSIGNED,
+            BatchStatus.CREATED,
             BatchStatus.ASSIGNED,
-            BatchStatus.PICKED,
-            BatchStatus.SHIPPED
+            BatchStatus.PICKED
     );
     private static final BigDecimal PARCEL_LIMIT = BigDecimal.valueOf(20);
     private static final BigDecimal SMALL_LIMIT = BigDecimal.valueOf(50);
@@ -62,6 +63,7 @@ public class OrderService {
     private final BackOrderAuditRepository backOrderAuditRepository;
     private final BatchInfoRepository batchInfoRepository;
     private final BatchOrderInfoRepository batchOrderInfoRepository;
+    private final ShippingLabelService shippingLabelService;
 
     public OrderService(
             OrderInfoRepository orderInfoRepository,
@@ -73,7 +75,8 @@ public class OrderService {
             BackOrderRepository backOrderRepository,
             BackOrderAuditRepository backOrderAuditRepository,
             BatchInfoRepository batchInfoRepository,
-            BatchOrderInfoRepository batchOrderInfoRepository
+            BatchOrderInfoRepository batchOrderInfoRepository,
+            ShippingLabelService shippingLabelService
     ) {
         this.orderInfoRepository = orderInfoRepository;
         this.productRepository = productRepository;
@@ -85,6 +88,7 @@ public class OrderService {
         this.backOrderAuditRepository = backOrderAuditRepository;
         this.batchInfoRepository = batchInfoRepository;
         this.batchOrderInfoRepository = batchOrderInfoRepository;
+        this.shippingLabelService = shippingLabelService;
     }
 
     @Transactional
@@ -126,8 +130,26 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public List<OrderResponse> getOrders(long actorId) {
+        User actor = requireLogin(actorId);
+        if (actor.getRole() == Role.PICKER) {
+            return orderInfoRepository.findAllAvailableForPickerQueue(ACTIVE_BATCH_STATUSES)
+                    .stream()
+                    .map(OrderResponse::from)
+                    .toList();
+        }
+
         requireOrderManager(actorId);
         return orderInfoRepository.findAllAvailableForIndividualOperations(ACTIVE_BATCH_STATUSES)
+                .stream()
+                .map(OrderResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getPickerOrderHistory(long actorId) {
+        User actor = requireLogin(actorId);
+        Picker picker = resolvePickerForActor(actor);
+        return orderInfoRepository.findAllByPicker_IdOrderByCreatedAtDesc(picker.getId())
                 .stream()
                 .map(OrderResponse::from)
                 .toList();
@@ -184,9 +206,14 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse assignOrder(String orderNumber, long pickerId) {
+    public OrderResponse assignOrder(String orderNumber, long pickerId, long actorId) {
+        User actor = requireLogin(actorId);
         Picker picker = pickerRepository.findById(pickerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Picker not found"));
+
+        if (actor.getRole() == Role.PICKER && !picker.getEmail().equalsIgnoreCase(actor.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Pickers can only assign orders to themselves");
+        }
 
         OrderInfo orderInfo = getOrder(orderNumber);
         ensureNotInActiveBatch(orderInfo);
@@ -198,14 +225,8 @@ public class OrderService {
 
     @Transactional
     public OrderResponse assignOrderToSelf(String orderNumber, long actorId) {
-        User actor = userRepository.findById(actorId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login is required"));
-
-        Picker picker = pickerRepository.findByEmailIgnoreCase(actor.getEmail())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.FORBIDDEN,
-                        "Logged in user is not registered as a picker"
-                ));
+        User actor = requireLogin(actorId);
+        Picker picker = resolvePickerForActor(actor);
 
         OrderInfo orderInfo = getOrder(orderNumber);
         ensureNotInActiveBatch(orderInfo);
@@ -216,9 +237,14 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse markOrderPicked(String orderNumber, long pickerId) {
+    public OrderResponse markOrderPicked(String orderNumber, long pickerId, long actorId) {
+        User actor = requireLogin(actorId);
         Picker picker = pickerRepository.findById(pickerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Picker not found"));
+
+        if (actor.getRole() == Role.PICKER && !picker.getEmail().equalsIgnoreCase(actor.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Pickers can only mark their own orders as picked");
+        }
 
         OrderInfo orderInfo = getOrder(orderNumber);
         if (orderInfo.getStatus() != OrderStatus.ASSIGNED_FOR_PICKING) {
@@ -233,6 +259,13 @@ public class OrderService {
         OrderResponse response = OrderResponse.from(orderInfoRepository.save(orderInfo));
         syncActiveBatchState(orderInfo);
         return response;
+    }
+
+    @Transactional
+    public OrderResponse markOrderPickedByActor(String orderNumber, long actorId) {
+        User actor = requireLogin(actorId);
+        Picker picker = resolvePickerForActor(actor);
+        return markOrderPicked(orderNumber, picker.getId(), actorId);
     }
 
     @Transactional
@@ -266,10 +299,36 @@ public class OrderService {
         BoxCategory boxCategory = determineBoxCategory(weight);
         String boxId = generateBoxId(boxCategory);
         orderInfo.markPacked(boxCategory, boxId, weight);
+        ShippingLabelService.ShippingLabelDocument shippingLabel = shippingLabelService.generateLabel(orderInfo);
+        orderInfo.attachShippingLabel(shippingLabel.fileName(), shippingLabel.content());
 
         OrderResponse response = OrderResponse.from(orderInfoRepository.save(orderInfo));
         syncActiveBatchState(orderInfo);
         return response;
+    }
+
+    @Transactional(readOnly = true)
+    public ShippingLabelService.ShippingLabelDocument getShippingLabel(String orderNumber, long actorId) {
+        User actor = requireLogin(actorId);
+        OrderInfo orderInfo = getOrder(orderNumber);
+
+        if (actor.getRole() == Role.PICKER) {
+            Picker picker = resolvePickerForActor(actor);
+            if (orderInfo.getPicker() == null || orderInfo.getPicker().getId() != picker.getId()) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Pickers can only access labels for their own orders");
+            }
+        } else {
+            requireOrderManager(actorId);
+        }
+
+        if (orderInfo.getShippingLabelPdf() == null || orderInfo.getShippingLabelPdf().length == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Shipping label has not been generated for this order yet");
+        }
+
+        return new ShippingLabelService.ShippingLabelDocument(
+                orderInfo.getShippingLabelFileName(),
+                orderInfo.getShippingLabelPdf()
+        );
     }
 
     @Transactional
@@ -299,6 +358,10 @@ public class OrderService {
             return OrderResponse.from(orderInfo);
         }
 
+        if (orderInfo.getStatus() == OrderStatus.ASSIGNED_FOR_PICKING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Assigned orders must be picked and cannot be cancelled");
+        }
+
         restoreProducts(orderInfo);
         backOrderRepository.deleteByOrderInfo(orderInfo);
         orderInfo.updateStatus(OrderStatus.CANCELLED);
@@ -312,6 +375,10 @@ public class OrderService {
         requireOrderManager(actorId);
         OrderInfo orderInfo = getOrder(orderNumber);
         ensureNotInActiveBatch(orderInfo);
+
+        if (orderInfo.getStatus() == OrderStatus.ASSIGNED_FOR_PICKING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Assigned orders cannot be deleted");
+        }
 
         backOrderRepository.deleteByOrderInfo(orderInfo);
         if (orderInfo.getStatus() != OrderStatus.CANCELLED) {
@@ -527,13 +594,23 @@ public class OrderService {
 
         List<com.example.demo.entity.BatchInfo> batchesToSave = new ArrayList<>();
         for (BatchOrderInfo batchOrderInfo : batchOrderInfos) {
+            com.example.demo.entity.BatchInfo batchInfo = batchOrderInfo.getBatchInfo();
+            if (batchInfo.getStatus() == BatchStatus.FULFILLED) {
+                continue;
+            }
+
             OrderItemInfo item = orderInfo.getItems().stream()
                     .filter(orderItemInfo -> orderItemInfo.getId() == batchOrderInfo.getOrderItemInfoId())
                     .findFirst()
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Batch item could not be synchronized"));
             batchOrderInfo.syncFrom(orderInfo, item);
-            com.example.demo.entity.BatchInfo batchInfo = batchOrderInfo.getBatchInfo();
-            batchInfo.updateStatus(resolveBatchStatus(batchInfo));
+
+            BatchStatus nextStatus = resolveBatchStatus(batchInfo);
+            if (nextStatus == BatchStatus.FULFILLED) {
+                batchInfo.markFulfilled();
+            } else {
+                batchInfo.updateStatus(nextStatus);
+            }
             batchesToSave.add(batchInfo);
         }
 
@@ -542,7 +619,7 @@ public class OrderService {
 
     private BatchStatus resolveBatchStatus(com.example.demo.entity.BatchInfo batchInfo) {
         if (batchInfo.getPicker() == null) {
-            return BatchStatus.UNASSIGNED;
+            return BatchStatus.CREATED;
         }
 
         List<OrderStatus> orderStatuses = batchInfo.getOrders().stream()
@@ -551,14 +628,14 @@ public class OrderService {
                 .map(OrderInfo::getStatus)
                 .toList();
 
-        if (orderStatuses.stream().allMatch(status -> status == OrderStatus.CANCELLED)) {
-            return BatchStatus.CANCELLED;
-        }
-
         if (orderStatuses.stream().anyMatch(status -> status == OrderStatus.ASSIGNED_FOR_PICKING
                 || status == OrderStatus.CREATED
                 || status == OrderStatus.BACK_ORDER)) {
             return BatchStatus.ASSIGNED;
+        }
+
+        if (orderStatuses.stream().allMatch(this::isFulfilledForBatch)) {
+            return BatchStatus.FULFILLED;
         }
 
         if (orderStatuses.stream().anyMatch(status -> status == OrderStatus.PICKED
@@ -567,15 +644,13 @@ public class OrderService {
             return BatchStatus.PICKED;
         }
 
-        if (orderStatuses.stream().anyMatch(status -> status == OrderStatus.SHIPPED)) {
-            return BatchStatus.SHIPPED;
-        }
-
-        if (orderStatuses.stream().allMatch(status -> status == OrderStatus.DELIVERED)) {
-            return BatchStatus.DELIVERED;
-        }
-
         return BatchStatus.ASSIGNED;
+    }
+
+    private boolean isFulfilledForBatch(OrderStatus status) {
+        return status == OrderStatus.PACKED
+                || status == OrderStatus.SHIPPED
+                || status == OrderStatus.DELIVERED;
     }
 
     private OrderInfo getOrder(String orderNumber) {
@@ -604,7 +679,7 @@ public class OrderService {
         return switch (status) {
             case CREATED -> EnumSet.of(OrderStatus.ASSIGNED_FOR_PICKING, OrderStatus.CANCELLED);
             case BACK_ORDER -> EnumSet.of(OrderStatus.CREATED, OrderStatus.CANCELLED);
-            case ASSIGNED_FOR_PICKING -> EnumSet.of(OrderStatus.PICKED, OrderStatus.CANCELLED);
+            case ASSIGNED_FOR_PICKING -> EnumSet.of(OrderStatus.PICKED);
             case PICKED -> EnumSet.of(OrderStatus.PACKED, OrderStatus.CANCELLED);
             case PACKING -> EnumSet.of(OrderStatus.PACKED, OrderStatus.CANCELLED);
             case PACKED -> EnumSet.of(OrderStatus.SHIPPED, OrderStatus.CANCELLED);
@@ -659,14 +734,26 @@ public class OrderService {
     }
 
     private User requireOrderManager(long actorId) {
-        User actor = userRepository.findById(actorId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login is required"));
+        User actor = requireLogin(actorId);
 
         if (actor.getRole() != Role.ASSOCIATE && actor.getRole() != Role.ADMIN && actor.getRole() != Role.SUPER_ADMIN) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Order management is not allowed");
         }
 
         return actor;
+    }
+
+    private User requireLogin(long actorId) {
+        return userRepository.findById(actorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login is required"));
+    }
+
+    private Picker resolvePickerForActor(User actor) {
+        return pickerRepository.findByEmailIgnoreCase(actor.getEmail())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "Logged in user is not registered as a picker"
+                ));
     }
 
     private record FulfillmentDecision(

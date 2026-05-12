@@ -548,10 +548,6 @@
                 <h2>Create Order</h2>
                 <form class="form" id="orderForm">
                     <label>
-                        Order Number
-                        <input id="orderNumber" type="text" required>
-                    </label>
-                    <label>
                         FC ID
                         <select id="orderFcId" required>
                             <option value="">Select FC</option>
@@ -604,6 +600,10 @@
                     <label>
                         Employee ID
                         <input id="pickerEmployeeId" type="text" required>
+                    </label>
+                    <label>
+                        Password
+                        <input id="pickerPassword" type="password" minlength="8" required>
                     </label>
                     <button class="primary" type="submit">Save Picker</button>
                     <button class="ghost" id="cancelPickerEditButton" type="button">Cancel Edit</button>
@@ -776,6 +776,32 @@
                     </div>
                 </section>
 
+                <section class="panel hidden" id="pickerHistorySection">
+                    <div class="user-tools">
+                        <div>
+                            <h2>My Picker History</h2>
+                            <p class="message" id="pickerHistoryMessage">Login as a picker to view your order history.</p>
+                        </div>
+                        <button class="secondary hidden" id="refreshPickerHistoryButton" type="button">Refresh History</button>
+                    </div>
+                    <div class="table-wrap hidden" id="pickerHistoryTableWrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Order Number</th>
+                                    <th>Client</th>
+                                    <th>Status</th>
+                                    <th>FC</th>
+                                    <th>Assigned Picker</th>
+                                    <th>Picked At</th>
+                                    <th>Created At</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pickerHistoryTableBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
                 <section class="panel hidden" id="batchesSection">
                     <div class="user-tools">
                         <div>
@@ -922,6 +948,7 @@
         let products = [];
         let inventorySnapshot = [];
         let orders = [];
+        let pickerOrderHistory = [];
         let batches = [];
         let pickers = [];
         let backOrderAudits = [];
@@ -943,6 +970,7 @@
         const inventorySection = document.getElementById("inventorySection");
         const ordersSection = document.getElementById("ordersSection");
         const batchesSection = document.getElementById("batchesSection");
+        const pickerHistorySection = document.getElementById("pickerHistorySection");
         const pickersSection = document.getElementById("pickersSection");
         const backOrderAuditSection = document.getElementById("backOrderAuditSection");
         const orderDetailSection = document.getElementById("orderDetailSection");
@@ -959,7 +987,9 @@
         const ordersTableWrap = document.getElementById("ordersTableWrap");
         const ordersTableBody = document.getElementById("ordersTableBody");
         const batchesTableWrap = document.getElementById("batchesTableWrap");
+        const pickerHistoryTableWrap = document.getElementById("pickerHistoryTableWrap");
         const batchesTableBody = document.getElementById("batchesTableBody");
+        const pickerHistoryTableBody = document.getElementById("pickerHistoryTableBody");
         const pickersTableWrap = document.getElementById("pickersTableWrap");
         const pickersTableBody = document.getElementById("pickersTableBody");
         const backOrderAuditTableWrap = document.getElementById("backOrderAuditTableWrap");
@@ -994,6 +1024,7 @@
         const inventoryMessage = document.getElementById("inventoryMessage");
         const ordersMessage = document.getElementById("ordersMessage");
         const batchesMessage = document.getElementById("batchesMessage");
+        const pickerHistoryMessage = document.getElementById("pickerHistoryMessage");
         const pickersMessage = document.getElementById("pickersMessage");
         const backOrderAuditMessage = document.getElementById("backOrderAuditMessage");
         const orderDetailMessage = document.getElementById("orderDetailMessage");
@@ -1007,6 +1038,7 @@
         const refreshInventoryButton = document.getElementById("refreshInventoryButton");
         const refreshOrdersButton = document.getElementById("refreshOrdersButton");
         const refreshBatchesButton = document.getElementById("refreshBatchesButton");
+        const refreshPickerHistoryButton = document.getElementById("refreshPickerHistoryButton");
         const refreshBatchFormButton = document.getElementById("refreshBatchFormButton");
         const refreshPickersButton = document.getElementById("refreshPickersButton");
         const refreshBackOrderAuditButton = document.getElementById("refreshBackOrderAuditButton");
@@ -1037,6 +1069,18 @@
             return currentUser && (currentUser.role === "ASSOCIATE" || currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN");
         }
 
+        function isPickerUser() {
+            return currentUser && currentUser.role === "PICKER";
+        }
+
+        function canViewPickingWorkspace() {
+            return canManageBusinessData() || isPickerUser();
+        }
+
+        function canViewPickerHistory() {
+            return Boolean(currentUserPicker());
+        }
+
         function canAdministerPickers() {
             return currentUser && (currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN");
         }
@@ -1057,8 +1101,9 @@
             const statusMap = {
                 CREATED: ["CREATED", "ASSIGNED_FOR_PICKING", "CANCELLED", "BACK_ORDER"],
                 BACK_ORDER: ["BACK_ORDER", "CREATED", "CANCELLED"],
-                ASSIGNED_FOR_PICKING: ["ASSIGNED_FOR_PICKING", "PICKED", "CANCELLED", "BACK_ORDER"],
-                PICKED: ["PICKED", "SHIPPED", "CANCELLED"],
+                ASSIGNED_FOR_PICKING: ["ASSIGNED_FOR_PICKING", "PICKED"],
+                PICKED: ["PICKED", "PACKED", "CANCELLED"],
+                PACKED: ["PACKED", "SHIPPED", "CANCELLED"],
                 SHIPPED: ["SHIPPED", "DELIVERED", "CANCELLED"],
                 DELIVERED: ["DELIVERED"],
                 CANCELLED: ["CANCELLED"]
@@ -1333,6 +1378,7 @@
                 inventorySection.classList.add("hidden");
                 ordersSection.classList.add("hidden");
                 batchesSection.classList.add("hidden");
+                pickerHistorySection.classList.add("hidden");
                 pickersSection.classList.add("hidden");
                 backOrderAuditSection.classList.add("hidden");
                 orderDetailSection.classList.add("hidden");
@@ -1345,6 +1391,7 @@
                 refreshInventoryButton.classList.add("hidden");
                 refreshOrdersButton.classList.add("hidden");
                 refreshBatchesButton.classList.add("hidden");
+                refreshPickerHistoryButton.classList.add("hidden");
                 refreshPickersButton.classList.add("hidden");
                 refreshBackOrderAuditButton.classList.add("hidden");
                 return;
@@ -1359,27 +1406,29 @@
             productPanel.classList.toggle("hidden", !canManageBusinessData());
             orderPanel.classList.toggle("hidden", !canManageBusinessData());
             pickerPanel.classList.toggle("hidden", !canAdministerPickers());
-                batchPanel.classList.toggle("hidden", !canManageBusinessData());
+            batchPanel.classList.toggle("hidden", !canManageBusinessData());
             usersSection.classList.toggle("hidden", !canManageUsers());
             clientsSection.classList.toggle("hidden", !canManageBusinessData());
             fcsSection.classList.toggle("hidden", !canManageBusinessData());
             productsSection.classList.toggle("hidden", !canManageBusinessData());
             inventorySection.classList.toggle("hidden", !canManageBusinessData());
-            ordersSection.classList.toggle("hidden", !canManageBusinessData());
-            batchesSection.classList.toggle("hidden", !canManageBusinessData());
-            pickersSection.classList.toggle("hidden", !canManageBusinessData());
+            ordersSection.classList.toggle("hidden", !canViewPickingWorkspace());
+            batchesSection.classList.toggle("hidden", !canViewPickingWorkspace());
+            pickerHistorySection.classList.toggle("hidden", !canViewPickerHistory());
+            pickersSection.classList.toggle("hidden", !canAdministerPickers());
             backOrderAuditSection.classList.toggle("hidden", !canManageBusinessData());
-            orderDetailSection.classList.toggle("hidden", !canManageBusinessData());
-            batchDetailSection.classList.toggle("hidden", !canManageBusinessData());
+            orderDetailSection.classList.toggle("hidden", !canViewPickingWorkspace());
+            batchDetailSection.classList.toggle("hidden", !canViewPickingWorkspace());
             logoutButton.classList.remove("hidden");
             refreshButton.classList.toggle("hidden", !canManageUsers());
             refreshClientsButton.classList.toggle("hidden", !canManageBusinessData());
             refreshFcsButton.classList.toggle("hidden", !canManageBusinessData());
             refreshProductsButton.classList.toggle("hidden", !canManageBusinessData());
             refreshInventoryButton.classList.toggle("hidden", !canManageBusinessData());
-            refreshOrdersButton.classList.toggle("hidden", !canManageBusinessData());
-            refreshBatchesButton.classList.toggle("hidden", !canManageBusinessData());
-            refreshPickersButton.classList.toggle("hidden", !canManageBusinessData());
+            refreshOrdersButton.classList.toggle("hidden", !canViewPickingWorkspace());
+            refreshBatchesButton.classList.toggle("hidden", !canViewPickingWorkspace());
+            refreshPickerHistoryButton.classList.toggle("hidden", !canViewPickerHistory());
+            refreshPickersButton.classList.toggle("hidden", !canAdministerPickers());
             refreshBackOrderAuditButton.classList.toggle("hidden", !canManageBusinessData());
         }
 
@@ -1575,9 +1624,9 @@
 
         function renderOrders() {
             ordersTableBody.innerHTML = "";
-            ordersTableWrap.classList.toggle("hidden", !canManageBusinessData() || !orders.length);
+            ordersTableWrap.classList.toggle("hidden", !canViewPickingWorkspace() || !orders.length);
 
-            if (!canManageBusinessData()) {
+            if (!canViewPickingWorkspace()) {
                 setMessage(ordersMessage, "Login to view orders.");
                 return;
             }
@@ -1592,14 +1641,16 @@
             orders.forEach((order) => {
                 const row = document.createElement("tr");
                 const selfPicker = currentUserPicker();
-                const statusCell = order.status === "CANCELLED" || order.status === "DELIVERED"
+                const canManageOrderLifecycle = canManageBusinessData();
+                const canSelfPick = isPickerUser() && selfPicker && String(order.pickerId) === String(selfPicker.id);
+                const statusCell = !canManageOrderLifecycle || order.status === "CANCELLED" || order.status === "DELIVERED"
                     ? `<span>${order.status}</span>`
                     : `<select data-role="order-status" data-order-number="${order.orderNumber}">
                             ${getForwardOnlyStatuses(order.status).map((status) => `
                                 <option value="${status}" ${order.status === status ? "selected" : ""}>${status}</option>
                             `).join("")}
                         </select>`;
-                const pickerCell = order.pickerName
+                const pickerCell = order.pickerName || !canManageBusinessData()
                     ? `${order.pickerName}${order.pickedAt ? ` <br><small>Picked at ${new Date(order.pickedAt).toLocaleString()}</small>` : ""}`
                     : `<select data-role="picker-id" data-order-number="${order.orderNumber}">
                             ${renderPickerOptions(order.pickerId || "")}
@@ -1615,19 +1666,22 @@
                     <td>${new Date(order.createdAt).toLocaleString()}</td>
                     <td class="actions">
                         <button class="ghost" type="button" data-action="view-detail" data-order-number="${order.orderNumber}">View Details</button>
-                        ${order.status === "CREATED"
+                        ${canManageBusinessData() && order.status === "CREATED"
                             ? `<button class="secondary" type="button" data-action="assign-picker" data-order-number="${order.orderNumber}">Assign Picker</button>`
                             : ""}
                         ${order.status === "CREATED" && selfPicker
                             ? `<button class="primary" type="button" data-action="assign-self" data-order-number="${order.orderNumber}">Assign To Me</button>`
                             : ""}
-                        ${order.status === "ASSIGNED_FOR_PICKING" && order.pickerId
+                        ${order.status === "ASSIGNED_FOR_PICKING" && order.pickerId && canManageBusinessData()
                             ? `<button class="secondary" type="button" data-action="mark-picked" data-order-number="${order.orderNumber}" data-picker-id="${order.pickerId}">Mark Picked</button>`
                             : ""}
-                        ${order.status === "CANCELLED" || order.status === "DELIVERED"
+                        ${order.status === "ASSIGNED_FOR_PICKING" && canSelfPick
+                            ? `<button class="primary" type="button" data-action="mark-picked-self" data-order-number="${order.orderNumber}">Mark Picked</button>`
+                            : ""}
+                        ${!canManageOrderLifecycle || order.status === "CANCELLED" || order.status === "DELIVERED"
                             ? ""
                             : `<button class="secondary" type="button" data-action="save-status" data-order-number="${order.orderNumber}">Save Status</button>`}
-                        <button class="danger" type="button" data-action="delete" data-order-number="${order.orderNumber}">Delete</button>
+                        ${canManageBusinessData() ? `<button class="danger" type="button" data-action="delete" data-order-number="${order.orderNumber}">Delete</button>` : ""}
                     </td>
                 `;
                 ordersTableBody.appendChild(row);
@@ -1636,10 +1690,10 @@
 
         function renderBatches() {
             batchesTableBody.innerHTML = "";
-            batchesTableWrap.classList.toggle("hidden", !canManageBusinessData() || !batches.length);
+            batchesTableWrap.classList.toggle("hidden", !canViewPickingWorkspace() || !batches.length);
             renderBatchOrderSelection();
 
-            if (!canManageBusinessData()) {
+            if (!canViewPickingWorkspace()) {
                 setMessage(batchesMessage, "Login to view batches.");
                 return;
             }
@@ -1655,7 +1709,7 @@
             batches.forEach((batch) => {
                 const row = document.createElement("tr");
                 const firstOrder = batch.orders[0] || {};
-                const pickerCell = batch.status === "UNASSIGNED"
+                const pickerCell = batch.status === "CREATED" && canManageBusinessData()
                     ? `<select data-role="picker-id" data-batch-id="${batch.batchId}">
                             ${renderPickerOptions(batch.pickerId || "")}
                        </select>`
@@ -1669,25 +1723,56 @@
                     <td>${new Date(batch.createdAt).toLocaleString()}</td>
                     <td class="actions">
                         <button class="ghost" type="button" data-action="view-detail" data-id="${batch.batchId}">View Details</button>
-                        <button class="secondary" type="button" data-action="edit" data-id="${batch.batchId}">Edit</button>
-                        ${batch.status === "UNASSIGNED" ? `<button class="secondary" type="button" data-action="assign-picker" data-id="${batch.batchId}">Assign Picker</button>` : ""}
-                        ${batch.status === "UNASSIGNED" && selfPicker ? `<button class="primary" type="button" data-action="assign-self" data-id="${batch.batchId}">Assign To Me</button>` : ""}
+                        ${canManageBusinessData() ? `<button class="secondary" type="button" data-action="edit" data-id="${batch.batchId}">Edit</button>` : ""}
+                        ${canManageBusinessData() && batch.status === "CREATED" ? `<button class="secondary" type="button" data-action="assign-picker" data-id="${batch.batchId}">Assign Picker</button>` : ""}
+                        ${batch.status === "CREATED" && selfPicker ? `<button class="primary" type="button" data-action="assign-self" data-id="${batch.batchId}">Assign To Me</button>` : ""}
                         ${batch.status === "ASSIGNED" && selfPicker && String(batch.pickerId) === String(selfPicker.id)
                             ? `<button class="primary" type="button" data-action="mark-picked" data-id="${batch.batchId}">Mark Picked</button>`
                             : ""}
-                        <button class="danger" type="button" data-action="delete" data-id="${batch.batchId}">Delete</button>
+                        ${canManageBusinessData() ? `<button class="danger" type="button" data-action="delete" data-id="${batch.batchId}">Delete</button>` : ""}
                     </td>
                 `;
                 batchesTableBody.appendChild(row);
             });
         }
 
+        function renderPickerOrderHistory() {
+            pickerHistoryTableBody.innerHTML = "";
+            pickerHistoryTableWrap.classList.toggle("hidden", !canViewPickerHistory() || !pickerOrderHistory.length);
+
+            if (!canViewPickerHistory()) {
+                setMessage(pickerHistoryMessage, "Login as a picker to view your order history.");
+                return;
+            }
+
+            if (!pickerOrderHistory.length) {
+                setMessage(pickerHistoryMessage, "No picker history found yet.");
+                return;
+            }
+
+            setMessage(pickerHistoryMessage, `${pickerOrderHistory.length} order(s) in your picker history.`);
+
+            pickerOrderHistory.forEach((order) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${order.orderNumber}</td>
+                    <td>${order.clientName}</td>
+                    <td>${order.status}</td>
+                    <td>${order.fcId}</td>
+                    <td>${order.pickerName || "Not assigned"}</td>
+                    <td>${order.pickedAt ? new Date(order.pickedAt).toLocaleString() : "Not picked"}</td>
+                    <td>${new Date(order.createdAt).toLocaleString()}</td>
+                `;
+                pickerHistoryTableBody.appendChild(row);
+            });
+        }
+
         function renderPickers() {
             pickersTableBody.innerHTML = "";
-            pickersTableWrap.classList.toggle("hidden", !canManageBusinessData() || !pickers.length);
+            pickersTableWrap.classList.toggle("hidden", !canAdministerPickers() || !pickers.length);
 
-            if (!canManageBusinessData()) {
-                setMessage(pickersMessage, "Login to view pickers.");
+            if (!canAdministerPickers()) {
+                setMessage(pickersMessage, "Login as admin to view pickers.");
                 return;
             }
 
@@ -1747,7 +1832,7 @@
             orderDetailCard.classList.toggle("hidden", !selectedOrder);
             clearOrderDetailButton.classList.toggle("hidden", !selectedOrder);
 
-            if (!canManageBusinessData()) {
+            if (!canViewPickingWorkspace()) {
                 setMessage(orderDetailMessage, "Login to view order details.");
                 return;
             }
@@ -1801,7 +1886,7 @@
             batchDetailCard.classList.toggle("hidden", !selectedBatch);
             clearBatchDetailButton.classList.toggle("hidden", !selectedBatch);
 
-            if (!canManageBusinessData()) {
+            if (!canViewPickingWorkspace()) {
                 setMessage(batchDetailMessage, "Login to view batch details.");
                 return;
             }
@@ -1836,14 +1921,16 @@
             const selfPicker = currentUserPicker();
             getBatchLifecycleOrders(selectedBatch).forEach((order) => {
                 const row = document.createElement("tr");
-                const statusCell = order.status === "CANCELLED" || order.status === "DELIVERED"
+                const canManageOrderLifecycle = canManageBusinessData();
+                const canSelfPick = isPickerUser() && selfPicker && String(order.pickerId) === String(selfPicker.id);
+                const statusCell = !canManageOrderLifecycle || order.status === "CANCELLED" || order.status === "DELIVERED"
                     ? `<span>${order.status}</span>`
                     : `<select data-role="batch-order-status" data-order-number="${order.orderNumber}">
                             ${getForwardOnlyStatuses(order.status).map((status) => `
                                 <option value="${status}" ${order.status === status ? "selected" : ""}>${status}</option>
                             `).join("")}
                         </select>`;
-                const pickerCell = order.pickerName
+                const pickerCell = order.pickerName || !canManageBusinessData()
                     ? `${order.pickerName}${order.pickedAt ? ` <br><small>Picked at ${new Date(order.pickedAt).toLocaleString()}</small>` : ""}`
                     : `<select data-role="batch-order-picker-id" data-order-number="${order.orderNumber}">
                             ${renderPickerOptions(order.pickerId || "")}
@@ -1861,9 +1948,12 @@
                     <td>${order.fulfilledQuantity}</td>
                     <td>${order.backOrderedQuantity}</td>
                     <td class="actions">
-                        ${order.status === "CANCELLED" || order.status === "DELIVERED"
+                        ${!canManageOrderLifecycle || order.status === "CANCELLED" || order.status === "DELIVERED"
                             ? ""
                             : `<button class="secondary" type="button" data-action="save-status" data-order-number="${order.orderNumber}">Save Status</button>`}
+                        ${canSelfPick && order.status === "ASSIGNED_FOR_PICKING"
+                            ? `<button class="primary" type="button" data-action="mark-picked-self" data-order-number="${order.orderNumber}">Mark Picked</button>`
+                            : ""}
                     </td>
                 `;
                 batchOrderLifecycleBody.appendChild(row);
@@ -1926,7 +2016,7 @@
         }
 
         async function loadOrders() {
-            if (!canManageBusinessData()) {
+            if (!canViewPickingWorkspace()) {
                 orders = [];
                 renderOrders();
                 return;
@@ -1940,8 +2030,19 @@
             renderOrderDetail();
         }
 
+        async function loadPickerOrderHistory() {
+            if (!canViewPickerHistory()) {
+                pickerOrderHistory = [];
+                renderPickerOrderHistory();
+                return;
+            }
+
+            pickerOrderHistory = await request("/orders/picker-history");
+            renderPickerOrderHistory();
+        }
+
         async function loadBatches() {
-            if (!canManageBusinessData()) {
+            if (!canViewPickingWorkspace()) {
                 batches = [];
                 renderBatches();
                 return;
@@ -1956,15 +2057,19 @@
         }
 
         async function loadPickers() {
-            if (!canManageBusinessData()) {
+            if (!canViewPickingWorkspace()) {
                 pickers = [];
+                renderSession();
                 renderPickers();
+                renderPickerOrderHistory();
                 return;
             }
 
             pickers = await request("/pickers");
+            renderSession();
             renderPickers();
             renderOrders();
+            renderPickerOrderHistory();
             renderBatches();
         }
 
@@ -2025,6 +2130,8 @@
             pickerForm.reset();
             document.getElementById("editingPickerId").value = "";
             pickerFormTitle.textContent = "Create Picker";
+            document.getElementById("pickerPassword").required = true;
+            document.getElementById("pickerPassword").placeholder = "";
             setMessage(pickerMessage, "");
         }
 
@@ -2057,6 +2164,7 @@
                 products = [];
                 inventorySnapshot = [];
                 orders = [];
+                pickerOrderHistory = [];
                 batches = [];
                 pickers = [];
                 backOrderAudits = [];
@@ -2065,7 +2173,8 @@
                 renderSession();
                 renderUsers();
                 await Promise.all([loadClients(), loadFcs()]);
-                await Promise.all([loadProducts(), loadInventorySnapshot(), loadOrders(), loadBatches(), loadPickers(), loadBackOrderAudits()]);
+                await Promise.all([loadProducts(), loadInventorySnapshot(), loadPickers(), loadOrders(), loadBatches(), loadBackOrderAudits()]);
+                await loadPickerOrderHistory();
             } catch (error) {
                 setMessage(loginMessage, error.message, true);
             }
@@ -2231,7 +2340,6 @@
                 const order = await request("/orders", {
                     method: "POST",
                     body: JSON.stringify({
-                        orderNumber: document.getElementById("orderNumber").value,
                         fcId: document.getElementById("orderFcId").value,
                         clientId: Number(selectedClientId),
                         billToAddress: document.getElementById("orderBillToAddress").value,
@@ -2293,7 +2401,8 @@
                     body: JSON.stringify({
                         name: document.getElementById("pickerName").value,
                         email: document.getElementById("pickerEmail").value,
-                        employeeId: document.getElementById("pickerEmployeeId").value
+                        employeeId: document.getElementById("pickerEmployeeId").value,
+                        password: document.getElementById("pickerPassword").value || null
                     })
                 });
 
@@ -2489,6 +2598,7 @@
                 try {
                     await request(`/orders/${orderNumber}/assign/${select.value}`, { method: "POST" });
                     await loadOrders();
+                    await loadPickerOrderHistory();
                     setMessage(ordersMessage, `Picker assigned to order ${orderNumber}.`);
                 } catch (error) {
                     setMessage(ordersMessage, error.message, true);
@@ -2500,6 +2610,7 @@
                 try {
                     await request(`/orders/${orderNumber}/assign-self`, { method: "POST" });
                     await loadOrders();
+                    await loadPickerOrderHistory();
                     setMessage(ordersMessage, `Order ${orderNumber} assigned to you.`);
                 } catch (error) {
                     setMessage(ordersMessage, error.message, true);
@@ -2511,6 +2622,19 @@
                 try {
                     await request(`/orders/${orderNumber}/pick/${button.dataset.pickerId}`, { method: "POST" });
                     await loadOrders();
+                    await loadPickerOrderHistory();
+                    setMessage(ordersMessage, `Order ${orderNumber} marked as picked.`);
+                } catch (error) {
+                    setMessage(ordersMessage, error.message, true);
+                }
+                return;
+            }
+
+            if (button.dataset.action === "mark-picked-self") {
+                try {
+                    await request(`/orders/${orderNumber}/pick-self`, { method: "POST" });
+                    await loadOrders();
+                    await loadPickerOrderHistory();
                     setMessage(ordersMessage, `Order ${orderNumber} marked as picked.`);
                 } catch (error) {
                     setMessage(ordersMessage, error.message, true);
@@ -2551,13 +2675,13 @@
             }
 
             if (button.dataset.action === "edit") {
-                if (batch.status !== "UNASSIGNED") {
-                    setMessage(batchesMessage, "Only UNASSIGNED batches can be updated.", true);
+                if (batch.status !== "CREATED") {
+                    setMessage(batchesMessage, "Only CREATED batches can be updated.", true);
                     return;
                 }
                 document.getElementById("editingBatchId").value = batch.batchId;
                 batchFormTitle.textContent = `Update Batch #${batch.batchId}`;
-                batchFormHint.textContent = `Editing batch ${batch.batchId}. Only UNASSIGNED batches can have membership updated.`;
+                batchFormHint.textContent = `Editing batch ${batch.batchId}. Only CREATED batches can have membership updated.`;
                 renderBatchOrderSelection(getUniqueBatchOrders(batch).map((order) => order.orderNumber));
                 setMessage(batchMessage, "Adjust the batch membership and save.");
                 return;
@@ -2572,7 +2696,7 @@
 
                 try {
                     await request(`/batches/${batch.batchId}/assign/${select.value}`, { method: "POST" });
-                    await Promise.all([loadBatches(), loadOrders()]);
+                    await Promise.all([loadBatches(), loadOrders(), loadPickerOrderHistory()]);
                     setMessage(batchesMessage, `Picker assigned to batch ${batch.batchId}.`);
                 } catch (error) {
                     setMessage(batchesMessage, error.message, true);
@@ -2583,7 +2707,7 @@
             if (button.dataset.action === "assign-self") {
                 try {
                     await request(`/batches/${batch.batchId}/assign-self`, { method: "POST" });
-                    await Promise.all([loadBatches(), loadOrders()]);
+                    await Promise.all([loadBatches(), loadOrders(), loadPickerOrderHistory()]);
                     setMessage(batchesMessage, `Batch ${batch.batchId} assigned to you.`);
                 } catch (error) {
                     setMessage(batchesMessage, error.message, true);
@@ -2594,7 +2718,7 @@
             if (button.dataset.action === "mark-picked") {
                 try {
                     await request(`/batches/${batch.batchId}/pick-self`, { method: "POST" });
-                    await Promise.all([loadBatches(), loadOrders()]);
+                    await Promise.all([loadBatches(), loadOrders(), loadPickerOrderHistory()]);
                     setMessage(batchesMessage, `Batch ${batch.batchId} marked as picked.`);
                 } catch (error) {
                     setMessage(batchesMessage, error.message, true);
@@ -2695,6 +2819,21 @@
                 } catch (error) {
                     setMessage(batchDetailMessage, error.message, true);
                 }
+                return;
+            }
+
+            if (button.dataset.action === "mark-picked-self") {
+                try {
+                    await request(`/orders/${orderNumber}/pick-self`, { method: "POST" });
+                    await Promise.all([loadOrders(), loadBatches()]);
+                    if (selectedBatch) {
+                        selectedBatch = await request(`/batches/${selectedBatch.batchId}`);
+                    }
+                    renderBatchDetail();
+                    setMessage(batchDetailMessage, `Order ${orderNumber} marked as picked.`);
+                } catch (error) {
+                    setMessage(batchDetailMessage, error.message, true);
+                }
             }
         });
 
@@ -2714,8 +2853,11 @@
                 document.getElementById("pickerName").value = picker.name;
                 document.getElementById("pickerEmail").value = picker.email;
                 document.getElementById("pickerEmployeeId").value = picker.employeeId;
+                document.getElementById("pickerPassword").value = "";
+                document.getElementById("pickerPassword").required = false;
+                document.getElementById("pickerPassword").placeholder = "Leave blank to keep the current password";
                 pickerFormTitle.textContent = "Update Picker";
-                setMessage(pickerMessage, "Edit the picker details and save.");
+                setMessage(pickerMessage, "Edit the picker details and save. Leave password blank to keep the current password.");
                 return;
             }
 
@@ -2785,6 +2927,7 @@
             products = [];
             inventorySnapshot = [];
             orders = [];
+            pickerOrderHistory = [];
             batches = [];
             pickers = [];
             backOrderAudits = [];
@@ -2804,6 +2947,7 @@
             renderProducts();
             renderInventorySnapshot();
             renderOrders();
+            renderPickerOrderHistory();
             renderBatches();
             renderPickers();
             renderBackOrderAudits();
@@ -2854,7 +2998,7 @@
 
         refreshOrdersButton.addEventListener("click", async () => {
             try {
-                await loadOrders();
+                await Promise.all([loadOrders(), loadPickerOrderHistory()]);
             } catch (error) {
                 setMessage(ordersMessage, error.message, true);
             }
@@ -2862,9 +3006,17 @@
 
         refreshBatchesButton.addEventListener("click", async () => {
             try {
-                await loadBatches();
+                await Promise.all([loadBatches(), loadPickerOrderHistory()]);
             } catch (error) {
                 setMessage(batchesMessage, error.message, true);
+            }
+        });
+
+        refreshPickerHistoryButton.addEventListener("click", async () => {
+            try {
+                await loadPickerOrderHistory();
+            } catch (error) {
+                setMessage(pickerHistoryMessage, error.message, true);
             }
         });
 
