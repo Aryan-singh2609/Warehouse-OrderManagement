@@ -27,6 +27,14 @@ public class BatchOrderResponse {
     private String shipToAddress;
     @Schema(description = "Current order status.", example = "ALLOCATED")
     private OrderStatus orderStatus;
+    @Schema(description = "Assigned picker id captured for this order inside the batch.", example = "22", nullable = true)
+    private Long pickerId;
+    @Schema(description = "Assigned picker name captured for this order inside the batch.", example = "Riya Sharma", nullable = true)
+    private String pickerName;
+    @Schema(description = "Assigned picker email captured for this order inside the batch.", example = "riya.sharma@warehouse.local", nullable = true)
+    private String pickerEmail;
+    @Schema(description = "Assigned picker employee id captured for this order inside the batch.", example = "PK-1024", nullable = true)
+    private String pickerEmployeeId;
     @Schema(description = "Stock keeping unit.", example = "SKU-USB-SCAN-01")
     private String sku;
     @Schema(description = "Product identifier.", example = "PRD-1001")
@@ -38,7 +46,10 @@ public class BatchOrderResponse {
     @Schema(description = "Back-ordered quantity.", example = "1")
     private int backOrderedQuantity;
 
-    public BatchOrderResponse(
+    public BatchOrderResponse(long id, String orderNumber, String warehouseId, String fcId, String fcLocation, long clientId, String clientName, String billToAddress, String shipToAddress, OrderStatus orderStatus, Long pickerId, String pickerName, String pickerEmail, String pickerEmployeeId, String sku, String productId, int quantity, int fulfilledQuantity, int backOrderedQuantity) {
+    }
+
+    public void BatchOrderResponse(
             long id,
             String orderNumber,
             String warehouseId,
@@ -49,6 +60,10 @@ public class BatchOrderResponse {
             String billToAddress,
             String shipToAddress,
             OrderStatus orderStatus,
+            Long pickerId,
+            String pickerName,
+            String pickerEmail,
+            String pickerEmployeeId,
             String sku,
             String productId,
             int quantity,
@@ -65,6 +80,10 @@ public class BatchOrderResponse {
         this.billToAddress = billToAddress;
         this.shipToAddress = shipToAddress;
         this.orderStatus = orderStatus;
+        this.pickerId = pickerId;
+        this.pickerName = pickerName;
+        this.pickerEmail = pickerEmail;
+        this.pickerEmployeeId = pickerEmployeeId;
         this.sku = sku;
         this.productId = productId;
         this.quantity = quantity;
@@ -84,6 +103,10 @@ public class BatchOrderResponse {
                 batchOrderInfo.getBillToAddress(),
                 batchOrderInfo.getShipToAddress(),
                 batchOrderInfo.getOrderStatus(),
+                batchOrderInfo.getPickerId(),
+                batchOrderInfo.getPickerName(),
+                batchOrderInfo.getPickerEmail(),
+                batchOrderInfo.getPickerEmployeeId(),
                 batchOrderInfo.getSku(),
                 batchOrderInfo.getProductId(),
                 batchOrderInfo.getQuantity(),
@@ -130,6 +153,22 @@ public class BatchOrderResponse {
 
     public OrderStatus getOrderStatus() {
         return orderStatus;
+    }
+
+    public Long getPickerId() {
+        return pickerId;
+    }
+
+    public String getPickerName() {
+        return pickerName;
+    }
+
+    public String getPickerEmail() {
+        return pickerEmail;
+    }
+
+    public String getPickerEmployeeId() {
+        return pickerEmployeeId;
     }
 
     public String getSku() {

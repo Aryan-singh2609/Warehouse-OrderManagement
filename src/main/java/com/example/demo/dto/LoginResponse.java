@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
-@SuppressWarnings("ALL")
 @Schema(name = "LoginResponse", description = "Authenticated user and the user list returned after login.")
 public class LoginResponse {
 

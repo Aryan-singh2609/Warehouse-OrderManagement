@@ -1,0 +1,652 @@
+{
+  "info": {
+    "_postman_id": "b0bda4d3-8c6b-4d76-9b51-warehouse-api",
+    "name": "Warehouse API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "superAdminEmail", "value": "Admin@Example.com" },
+    { "key": "superAdminPassword", "value": "Admin@123" },
+    { "key": "associatePassword", "value": "AssociatePass123!" },
+    { "key": "suffix", "value": "20260501" },
+    { "key": "adminEmail", "value": "qa.admin.{{suffix}}@example.com" },
+    { "key": "associateEmail", "value": "qa.associate.{{suffix}}@example.com" },
+    { "key": "clientEmail", "value": "ops.{{suffix}}@northwind.example" },
+    { "key": "fcId", "value": "FC-{{suffix}}" },
+    { "key": "warehouseId", "value": "WH-{{suffix}}" },
+    { "key": "productIdValue", "value": "PRD-{{suffix}}" },
+    { "key": "skuValue", "value": "SKU-{{suffix}}" },
+    { "key": "pickerEmployeeId", "value": "PK-{{suffix}}" },
+    { "key": "adminUserId", "value": "" },
+    { "key": "associateUserId", "value": "" },
+    { "key": "pickerId", "value": "" },
+    { "key": "clientId", "value": "" },
+    { "key": "fcRecordId", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "orderNumber1", "value": "" },
+    { "key": "orderNumber2", "value": "" },
+    { "key": "batchId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{superAdminEmail}}\",\n  \"password\": \"{{superAdminPassword}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login Associate",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{associateEmail}}\",\n  \"password\": \"{{associatePassword}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/data/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Users",
+      "item": [
+        {
+          "name": "Register Admin User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.id) { pm.collectionVariables.set('adminUserId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"QA Admin\",\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"AdminPass123!\",\n  \"role\": \"ADMIN\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Associate User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.id) { pm.collectionVariables.set('associateUserId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"QA Associate\",\n  \"email\": \"{{associateEmail}}\",\n  \"password\": \"{{associatePassword}}\",\n  \"role\": \"ASSOCIATE\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/data/users"
+          }
+        },
+        {
+          "name": "Update Associate User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/users/{{associateUserId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"QA Associate Updated\",\n  \"email\": \"{{associateEmail}}\",\n  \"role\": \"ASSOCIATE\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/data/users/{{adminUserId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Pickers",
+      "item": [
+        {
+          "name": "Create Picker",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.id) { pm.collectionVariables.set('pickerId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/pickers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"QA Associate\",\n  \"email\": \"{{associateEmail}}\",\n  \"employeeId\": \"{{pickerEmployeeId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Pickers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/data/pickers"
+          }
+        },
+        {
+          "name": "Get Picker By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/data/pickers/{{pickerId}}"
+          }
+        },
+        {
+          "name": "Update Picker",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/pickers/{{pickerId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"QA Associate Updated\",\n  \"email\": \"{{associateEmail}}\",\n  \"employeeId\": \"{{pickerEmployeeId}}\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Clients",
+      "item": [
+        {
+          "name": "Create Client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.id) { pm.collectionVariables.set('clientId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/clients",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Aarav Shah\",\n  \"organisationName\": \"Northwind Retail {{suffix}}\",\n  \"organisationAddress\": \"221B Baker Street, London\",\n  \"email\": \"{{clientEmail}}\",\n  \"phone\": \"+44-20-5555-0101\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Clients",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/data/clients"
+          }
+        },
+        {
+          "name": "Update Client",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/clients/{{clientId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Aarav Shah Updated\",\n  \"organisationName\": \"Northwind Retail {{suffix}}\",\n  \"organisationAddress\": \"221B Baker Street, London\",\n  \"email\": \"{{clientEmail}}\",\n  \"phone\": \"+44-20-5555-0102\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. FCs",
+      "item": [
+        {
+          "name": "Create FC",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.id) { pm.collectionVariables.set('fcRecordId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/fcs",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"warehouseId\": \"{{warehouseId}}\",\n  \"fcId\": \"{{fcId}}\",\n  \"location\": \"Bengaluru South Hub\",\n  \"latitude\": 12.9716,\n  \"longitude\": 77.5946\n}"
+            }
+          }
+        },
+        {
+          "name": "List FCs",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/data/fcs"
+          }
+        },
+        {
+          "name": "Update FC",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/fcs/{{fcRecordId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"warehouseId\": \"{{warehouseId}}\",\n  \"fcId\": \"{{fcId}}\",\n  \"location\": \"Bengaluru South Hub Updated\",\n  \"latitude\": 12.9716,\n  \"longitude\": 77.5946\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Products",
+      "item": [
+        {
+          "name": "Create Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.id) { pm.collectionVariables.set('productId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/products",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"USB Barcode Scanner {{suffix}}\",\n  \"productId\": \"{{productIdValue}}\",\n  \"sku\": \"{{skuValue}}\",\n  \"clientId\": {{clientId}},\n  \"fcId\": \"{{fcId}}\",\n  \"description\": \"Handheld USB barcode scanner\",\n  \"price\": 2499.99,\n  \"quantity\": 150\n}"
+            }
+          }
+        },
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/data/products"
+          }
+        },
+        {
+          "name": "Inventory Snapshot",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/data/inventory-snapshot"
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/products/{{productId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"USB Barcode Scanner {{suffix}} Updated\",\n  \"productId\": \"{{productIdValue}}\",\n  \"sku\": \"{{skuValue}}\",\n  \"clientId\": {{clientId}},\n  \"fcId\": \"{{fcId}}\",\n  \"description\": \"Handheld USB barcode scanner updated\",\n  \"price\": 2599.99,\n  \"quantity\": 150\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Orders",
+      "item": [
+        {
+          "name": "Create Order 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.orderNumber) { pm.collectionVariables.set('orderNumber1', json.orderNumber); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fcId\": \"{{fcId}}\",\n  \"clientId\": {{clientId}},\n  \"billToAddress\": \"221B Baker Street, London\",\n  \"shipToAddress\": \"7 Warehouse Avenue, Manchester\",\n  \"items\": [\n    {\n      \"sku\": \"{{skuValue}}\",\n      \"productId\": \"{{productIdValue}}\",\n      \"quantity\": 3,\n      \"clientId\": {{clientId}}\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Order 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.orderNumber) { pm.collectionVariables.set('orderNumber2', json.orderNumber); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fcId\": \"{{fcId}}\",\n  \"clientId\": {{clientId}},\n  \"billToAddress\": \"221B Baker Street, London\",\n  \"shipToAddress\": \"12 Warehouse Avenue, Manchester\",\n  \"items\": [\n    {\n      \"sku\": \"{{skuValue}}\",\n      \"productId\": \"{{productIdValue}}\",\n      \"quantity\": 2,\n      \"clientId\": {{clientId}}\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "List Orders",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/data/orders"
+          }
+        },
+        {
+          "name": "Assign Order 1",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/data/orders/{{orderNumber1}}/assign/{{pickerId}}"
+          }
+        },
+        {
+          "name": "Pick Order 1",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/data/orders/{{orderNumber1}}/pick/{{pickerId}}"
+          }
+        },
+        {
+          "name": "Pack Order 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/orders/{{orderNumber1}}/pack",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"weight\": 18.75\n}"
+            }
+          }
+        },
+        {
+          "name": "Ship Order 1",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/data/orders/{{orderNumber1}}/ship"
+          }
+        },
+        {
+          "name": "Deliver Order 1",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/data/orders/{{orderNumber1}}/deliver"
+          }
+        },
+        {
+          "name": "Back Order Audits",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/data/back-order-audits"
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Batches",
+      "item": [
+        {
+          "name": "Create Batch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.id) { pm.collectionVariables.set('batchId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/batches",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderNumbers\": [\n    \"{{orderNumber2}}\"\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "List Batches",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/data/batches"
+          }
+        },
+        {
+          "name": "Get Batch By Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/data/batches/{{batchId}}"
+          }
+        },
+        {
+          "name": "Assign Batch",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/data/batches/{{batchId}}/assign/{{pickerId}}"
+          }
+        },
+        {
+          "name": "Pick Batch Self",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/data/batches/{{batchId}}/pick-self"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Negative Cases",
+      "item": [
+        {
+          "name": "Login Wrong Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{superAdminEmail}}\",\n  \"password\": \"WrongPass123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Duplicate Client",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/clients",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Aarav Shah\",\n  \"organisationName\": \"Northwind Retail {{suffix}}\",\n  \"organisationAddress\": \"221B Baker Street, London\",\n  \"email\": \"{{clientEmail}}\",\n  \"phone\": \"+44-20-5555-0101\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Duplicate FC",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/fcs",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"warehouseId\": \"{{warehouseId}}\",\n  \"fcId\": \"{{fcId}}\",\n  \"location\": \"Bengaluru South Hub\",\n  \"latitude\": 12.9716,\n  \"longitude\": 77.5946\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Duplicate Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/products",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"USB Barcode Scanner {{suffix}} Updated\",\n  \"productId\": \"{{productIdValue}}\",\n  \"sku\": \"{{skuValue}}\",\n  \"clientId\": {{clientId}},\n  \"fcId\": \"{{fcId}}\",\n  \"description\": \"Handheld USB barcode scanner updated\",\n  \"price\": 2599.99,\n  \"quantity\": 150\n}"
+            }
+          }
+        },
+        {
+          "name": "Pack Order Before Pick",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/orders/{{orderNumber2}}/pack",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"weight\": 10.5\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Batch With Duplicate Order Numbers",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/data/batches",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderNumbers\": [\n    \"{{orderNumber2}}\",\n    \"{{orderNumber2}}\"\n  ]\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

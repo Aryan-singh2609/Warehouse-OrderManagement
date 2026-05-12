@@ -1,5 +1,9 @@
 package com.example.demo.entity;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,9 +18,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "batch_info")
@@ -99,13 +100,12 @@ public class BatchInfo {
         this.status = BatchStatus.PICKED;
     }
 
-    public void updateStatus(BatchStatus status) {
-        this.status = status;
+    public void markFulfilled() {
+        this.status = BatchStatus.FULFILLED;
     }
 
-    public void unassign() {
-        this.picker = null;
-        this.status = BatchStatus.UNASSIGNED;
+    public void updateStatus(BatchStatus status) {
+        this.status = status;
     }
 
     public void setOrderCount(int orderCount) {

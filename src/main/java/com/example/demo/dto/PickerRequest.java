@@ -3,6 +3,7 @@ package com.example.demo.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 @Schema(name = "PickerRequest", description = "Payload for creating or updating a picker.")
 public class PickerRequest {
@@ -19,6 +20,10 @@ public class PickerRequest {
     @Schema(description = "Unique employee identifier.", example = "PK-1024", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Employee ID is required")
     private String employeeId;
+
+    @Schema(description = "Picker login password. Required when creating a picker and optional when updating.", example = "PickerPass123!", format = "password", minLength = 8, nullable = true)
+    @Size(min = 8, message = "Password must be at least 8 characters")
+    private String password;
 
     public String getName() {
         return name;
@@ -42,5 +47,13 @@ public class PickerRequest {
 
     public void setEmployeeId(String employeeId) {
         this.employeeId = employeeId;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }

@@ -1,10 +1,8 @@
 package com.example.demo.entity;
 
 public enum BatchStatus {
-    UNASSIGNED,
+    CREATED,
     ASSIGNED,
     PICKED,
-    SHIPPED,
-    DELIVERED,
-    CANCELLED
+    FULFILLED
 }

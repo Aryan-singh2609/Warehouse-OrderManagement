@@ -10,6 +10,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
@@ -75,6 +76,16 @@ public class OrderInfo {
 
     @Column
     private LocalDateTime packedAt;
+
+    @Column
+    private String shippingLabelFileName;
+
+    @Column
+    private LocalDateTime shippingLabelGeneratedAt;
+
+    @Lob
+    @Column(columnDefinition = "LONGBLOB")
+    private byte[] shippingLabelPdf;
 
     @OneToMany(mappedBy = "orderInfo", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItemInfo> items = new ArrayList<>();
@@ -177,6 +188,18 @@ public class OrderInfo {
         return items;
     }
 
+    public String getShippingLabelFileName() {
+        return shippingLabelFileName;
+    }
+
+    public LocalDateTime getShippingLabelGeneratedAt() {
+        return shippingLabelGeneratedAt;
+    }
+
+    public byte[] getShippingLabelPdf() {
+        return shippingLabelPdf;
+    }
+
     public void addItem(OrderItemInfo item) {
         items.add(item);
         item.attachTo(this);
@@ -191,16 +214,6 @@ public class OrderInfo {
         this.status = OrderStatus.ASSIGNED_FOR_PICKING;
     }
 
-    public void clearPickerAssignment() {
-        this.picker = null;
-        this.status = OrderStatus.CREATED;
-        this.pickedAt = null;
-        this.boxCategory = null;
-        this.boxId = null;
-        this.packedWeight = null;
-        this.packedAt = null;
-    }
-
     public void markPicked() {
         this.status = OrderStatus.PICKED;
         this.pickedAt = LocalDateTime.now();
@@ -208,6 +221,9 @@ public class OrderInfo {
         this.boxId = null;
         this.packedWeight = null;
         this.packedAt = null;
+        this.shippingLabelFileName = null;
+        this.shippingLabelGeneratedAt = null;
+        this.shippingLabelPdf = null;
     }
 
     public void markPacked(BoxCategory boxCategory, String boxId, BigDecimal packedWeight) {
@@ -216,5 +232,11 @@ public class OrderInfo {
         this.boxId = boxId;
         this.packedWeight = packedWeight;
         this.packedAt = LocalDateTime.now();
+    }
+
+    public void attachShippingLabel(String shippingLabelFileName, byte[] shippingLabelPdf) {
+        this.shippingLabelFileName = shippingLabelFileName;
+        this.shippingLabelGeneratedAt = LocalDateTime.now();
+        this.shippingLabelPdf = shippingLabelPdf;
     }
 }

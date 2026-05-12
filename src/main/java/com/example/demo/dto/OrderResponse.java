@@ -46,6 +46,12 @@ public class OrderResponse {
     private BigDecimal packedWeight;
     @Schema(description = "Timestamp when the order was packed, if available.", example = "2026-04-29T13:05:00", nullable = true)
     private LocalDateTime packedAt;
+    @Schema(description = "Whether a shipping label PDF has been generated for the order.", example = "true")
+    private boolean shippingLabelAvailable;
+    @Schema(description = "Timestamp when the shipping label was generated, if available.", example = "2026-04-29T13:05:10", nullable = true)
+    private LocalDateTime shippingLabelGeneratedAt;
+    @Schema(description = "Download URL for the generated shipping label PDF.", example = "/data/orders/ORDID-AE890A7FC984/shipping-label", nullable = true)
+    private String shippingLabelDownloadUrl;
     @ArraySchema(schema = @Schema(implementation = OrderItemResponse.class), arraySchema = @Schema(description = "Order line items."))
     private List<OrderItemResponse> items;
 
@@ -67,6 +73,9 @@ public class OrderResponse {
             String boxId,
             BigDecimal packedWeight,
             LocalDateTime packedAt,
+            boolean shippingLabelAvailable,
+            LocalDateTime shippingLabelGeneratedAt,
+            String shippingLabelDownloadUrl,
             List<OrderItemResponse> items
     ) {
         this.orderNumber = orderNumber;
@@ -86,6 +95,9 @@ public class OrderResponse {
         this.boxId = boxId;
         this.packedWeight = packedWeight;
         this.packedAt = packedAt;
+        this.shippingLabelAvailable = shippingLabelAvailable;
+        this.shippingLabelGeneratedAt = shippingLabelGeneratedAt;
+        this.shippingLabelDownloadUrl = shippingLabelDownloadUrl;
         this.items = items;
     }
 
@@ -108,6 +120,11 @@ public class OrderResponse {
                 orderInfo.getBoxId(),
                 orderInfo.getPackedWeight(),
                 orderInfo.getPackedAt(),
+                orderInfo.getShippingLabelPdf() != null && orderInfo.getShippingLabelPdf().length > 0,
+                orderInfo.getShippingLabelGeneratedAt(),
+                orderInfo.getShippingLabelPdf() != null && orderInfo.getShippingLabelPdf().length > 0
+                        ? "/data/orders/" + orderInfo.getOrderNumber() + "/shipping-label"
+                        : null,
                 orderInfo.getItems().stream().map(OrderItemResponse::from).toList()
         );
     }
@@ -178,6 +195,18 @@ public class OrderResponse {
 
     public LocalDateTime getPackedAt() {
         return packedAt;
+    }
+
+    public boolean isShippingLabelAvailable() {
+        return shippingLabelAvailable;
+    }
+
+    public LocalDateTime getShippingLabelGeneratedAt() {
+        return shippingLabelGeneratedAt;
+    }
+
+    public String getShippingLabelDownloadUrl() {
+        return shippingLabelDownloadUrl;
     }
 
     public List<OrderItemResponse> getItems() {

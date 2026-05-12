@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import com.example.demo.dto.OrderResponse;
 import com.example.demo.dto.PackOrderRequest;
 import com.example.demo.service.OrderService;
+import com.example.demo.service.ShippingLabelService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,7 +13,12 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -49,5 +55,28 @@ public class PackingController extends SessionControllerSupport {
     ) {
         long userId = requireLogin(session);
         return orderService.packOrder(orderNumber, request.getWeight(), userId);
+    }
+
+    @GetMapping("/orders/{orderNumber}/shipping-label")
+    @Operation(summary = "Download an order shipping label", description = "Returns the generated shipping label PDF for a packed order.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Shipping label PDF returned"),
+            @ApiResponse(responseCode = "401", description = "Login required",
+                    content = @Content(schema = @Schema(implementation = com.example.demo.dto.ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Not allowed to access this label",
+                    content = @Content(schema = @Schema(implementation = com.example.demo.dto.ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Order or shipping label not found",
+                    content = @Content(schema = @Schema(implementation = com.example.demo.dto.ErrorResponse.class)))
+    })
+    public ResponseEntity<byte[]> downloadShippingLabel(
+            @PathVariable String orderNumber,
+            HttpSession session
+    ) {
+        long userId = requireLogin(session);
+        ShippingLabelService.ShippingLabelDocument label = orderService.getShippingLabel(orderNumber, userId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(label.fileName()).build().toString())
+                .body(label.content());
     }
 }

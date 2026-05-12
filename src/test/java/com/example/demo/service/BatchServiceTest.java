@@ -1,7 +1,6 @@
 package com.example.demo.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -13,6 +12,7 @@ import com.example.demo.dto.OrderResponse;
 import com.example.demo.dto.PickerRequest;
 import com.example.demo.entity.BoxCategory;
 import com.example.demo.entity.BatchStatus;
+import com.example.demo.entity.BatchOrderInfo;
 import com.example.demo.entity.Client;
 import com.example.demo.entity.FcInfo;
 import com.example.demo.entity.OrderStatus;
@@ -22,6 +22,7 @@ import com.example.demo.entity.User;
 import com.example.demo.repository.ClientRepository;
 import com.example.demo.repository.FcInfoRepository;
 import com.example.demo.repository.ProductRepository;
+import com.example.demo.repository.BatchOrderInfoRepository;
 import com.example.demo.repository.UserRepository;
 import java.math.BigDecimal;
 import java.util.List;
@@ -57,6 +58,9 @@ class BatchServiceTest {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private BatchOrderInfoRepository batchOrderInfoRepository;
+
     @Test
     void createBatchHidesOrdersFromIndividualOperations() {
         long actorId = createActor("manager-batch-1@example.com", Role.ASSOCIATE);
@@ -70,7 +74,7 @@ class BatchServiceTest {
 
         BatchResponse response = batchService.createBatch(batchRequest(firstOrder.getOrderNumber(), secondOrder.getOrderNumber()), actorId);
 
-        assertEquals(BatchStatus.UNASSIGNED, response.getStatus());
+        assertEquals(BatchStatus.CREATED, response.getStatus());
         assertEquals(2, response.getOrderCount());
         assertEquals(Set.of(firstOrder.getOrderNumber(), secondOrder.getOrderNumber()), response.getOrders().stream()
                 .map(order -> order.getOrderNumber())
@@ -107,12 +111,13 @@ class BatchServiceTest {
     @Test
     void pickerCanAssignBatchToSelfAndMarkItPicked() {
         long managerId = createActor("manager-batch-3@example.com", Role.ASSOCIATE);
-        long pickerActorId = createActor("picker-batch@example.com", Role.ASSOCIATE);
         PickerRequest pickerRequest = new PickerRequest();
         pickerRequest.setName("Batch Picker");
         pickerRequest.setEmail("picker-batch@example.com");
         pickerRequest.setEmployeeId("EMP-BATCH");
+        pickerRequest.setPassword("PickerPass123!");
         pickerService.createPicker(pickerRequest);
+        long pickerActorId = userRepository.findByEmailIgnoreCase("picker-batch@example.com").orElseThrow().getId();
 
         Client client = seedClient("client-batch-3@example.com");
         seedWarehouse();
@@ -128,24 +133,28 @@ class BatchServiceTest {
         assertEquals(BatchStatus.ASSIGNED, assigned.getStatus());
         assertEquals("Batch Picker", assigned.getPickerName());
         assertTrue(assigned.getOrders().stream().allMatch(order -> order.getOrderStatus() == OrderStatus.ASSIGNED_FOR_PICKING));
+        assertTrue(assigned.getOrders().stream().allMatch(order -> "Batch Picker".equals(order.getPickerName())));
+        assertTrue(assigned.getOrders().stream().allMatch(order -> "picker-batch@example.com".equals(order.getPickerEmail())));
 
         BatchResponse picked = batchService.markBatchPicked(created.getBatchId(), pickerActorId);
         assertEquals(BatchStatus.PICKED, picked.getStatus());
         assertTrue(picked.getOrders().stream().allMatch(order -> order.getOrderStatus() == OrderStatus.PICKED));
+        assertTrue(picked.getOrders().stream().allMatch(order -> "Batch Picker".equals(order.getPickerName())));
 
         List<OrderResponse> availableOrders = orderService.getOrders(managerId);
         assertTrue(availableOrders.isEmpty());
     }
 
     @Test
-    void deletingAssignedBatchReleasesOrdersForNormalPicking() {
+    void deletingAssignedBatchIsRejectedBecauseAssignmentsArePermanent() {
         long managerId = createActor("manager-batch-4@example.com", Role.ADMIN);
-        long pickerActorId = createActor("picker-release@example.com", Role.ASSOCIATE);
         PickerRequest pickerRequest = new PickerRequest();
         pickerRequest.setName("Release Picker");
         pickerRequest.setEmail("picker-release@example.com");
         pickerRequest.setEmployeeId("EMP-REL");
+        pickerRequest.setPassword("PickerPass123!");
         long pickerId = pickerService.createPicker(pickerRequest).getId();
+        long pickerActorId = userRepository.findByEmailIgnoreCase("picker-release@example.com").orElseThrow().getId();
 
         Client client = seedClient("client-batch-4@example.com");
         seedWarehouse();
@@ -155,13 +164,16 @@ class BatchServiceTest {
         BatchResponse created = batchService.createBatch(batchRequest(createdOrder.getOrderNumber()), managerId);
         batchService.assignBatch(created.getBatchId(), pickerId, pickerActorId);
 
-        batchService.deleteBatch(created.getBatchId(), managerId);
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> batchService.deleteBatch(created.getBatchId(), managerId)
+        );
 
-        List<OrderResponse> availableOrders = orderService.getOrders(managerId);
-        assertEquals(1, availableOrders.size());
-        assertEquals(createdOrder.getOrderNumber(), availableOrders.getFirst().getOrderNumber());
-        assertEquals(OrderStatus.CREATED, availableOrders.getFirst().getStatus());
-        assertNull(availableOrders.getFirst().getPickerId());
+        assertEquals(
+                "400 BAD_REQUEST \"Assigned or picked batches cannot be deleted because picker assignments cannot be removed\"",
+                exception.getMessage()
+        );
+        assertEquals(BatchStatus.ASSIGNED, batchService.getBatch(created.getBatchId(), managerId).getStatus());
     }
 
     @Test
@@ -188,6 +200,7 @@ class BatchServiceTest {
         pickerRequest.setName("Lifecycle Picker");
         pickerRequest.setEmail("picker-lifecycle@example.com");
         pickerRequest.setEmployeeId("EMP-LIFE");
+        pickerRequest.setPassword("PickerPass123!");
         long pickerId = pickerService.createPicker(pickerRequest).getId();
 
         Client client = seedClient("client-batch-6@example.com");
@@ -216,13 +229,69 @@ class BatchServiceTest {
         OrderResponse secondPacked = orderService.packOrder(secondOrder.getOrderNumber(), BigDecimal.valueOf(75), managerId);
         assertEquals(OrderStatus.PACKED, secondPacked.getStatus());
         assertEquals(BoxCategory.MEDIUM_BOX, secondPacked.getBoxCategory());
-        assertEquals(BatchStatus.PICKED, batchService.getBatch(created.getBatchId(), managerId).getStatus());
+        assertEquals(BatchStatus.FULFILLED, batchService.getBatch(created.getBatchId(), managerId).getStatus());
+        assertEquals(2, orderService.getOrders(managerId).size());
 
         orderService.updateOrderStatus(firstOrder.getOrderNumber(), OrderStatus.SHIPPED, managerId);
-        assertEquals(BatchStatus.PICKED, batchService.getBatch(created.getBatchId(), managerId).getStatus());
+        assertEquals(BatchStatus.FULFILLED, batchService.getBatch(created.getBatchId(), managerId).getStatus());
 
         orderService.updateOrderStatus(secondOrder.getOrderNumber(), OrderStatus.SHIPPED, managerId);
-        assertEquals(BatchStatus.SHIPPED, batchService.getBatch(created.getBatchId(), managerId).getStatus());
+        assertEquals(BatchStatus.FULFILLED, batchService.getBatch(created.getBatchId(), managerId).getStatus());
+    }
+
+    @Test
+    void fulfilledBatchReleasesOrdersButPreservesFrozenSnapshots() {
+        long managerId = createActor("manager-batch-7@example.com", Role.ASSOCIATE);
+        PickerRequest pickerRequest = new PickerRequest();
+        pickerRequest.setName("Fulfillment Picker");
+        pickerRequest.setEmail("picker-fulfillment@example.com");
+        pickerRequest.setEmployeeId("EMP-FULL");
+        pickerRequest.setPassword("PickerPass123!");
+        long pickerId = pickerService.createPicker(pickerRequest).getId();
+        long pickerActorId = userRepository.findByEmailIgnoreCase("picker-fulfillment@example.com").orElseThrow().getId();
+
+        Client client = seedClient("client-batch-7@example.com");
+        seedWarehouse();
+        seedProduct(client, "PROD-F1", "SKU-F1", 10);
+        seedProduct(client, "PROD-F2", "SKU-F2", 10);
+
+        OrderResponse firstOrder = orderService.createOrder(orderRequest(client.getId(), "PROD-F1", "SKU-F1"), managerId);
+        OrderResponse secondOrder = orderService.createOrder(orderRequest(client.getId(), "PROD-F2", "SKU-F2"), managerId);
+
+        BatchResponse created = batchService.createBatch(batchRequest(firstOrder.getOrderNumber(), secondOrder.getOrderNumber()), managerId);
+        batchService.assignBatch(created.getBatchId(), pickerId, managerId);
+        batchService.markBatchPicked(created.getBatchId(), pickerActorId);
+
+        orderService.packOrder(firstOrder.getOrderNumber(), BigDecimal.valueOf(15), managerId);
+        BatchResponse beforeFinalPack = batchService.getBatch(created.getBatchId(), managerId);
+        assertEquals(BatchStatus.PICKED, beforeFinalPack.getStatus());
+
+        orderService.packOrder(secondOrder.getOrderNumber(), BigDecimal.valueOf(25), managerId);
+        BatchResponse fulfilled = batchService.getBatch(created.getBatchId(), managerId);
+        assertEquals(BatchStatus.FULFILLED, fulfilled.getStatus());
+        assertTrue(orderService.getOrders(managerId).stream()
+                .map(OrderResponse::getOrderNumber)
+                .collect(java.util.stream.Collectors.toSet())
+                .containsAll(Set.of(firstOrder.getOrderNumber(), secondOrder.getOrderNumber())));
+        assertTrue(fulfilled.getOrders().stream().allMatch(order -> order.getPickerId() != null));
+        assertTrue(fulfilled.getOrders().stream().allMatch(order -> "Fulfillment Picker".equals(order.getPickerName())));
+        assertTrue(fulfilled.getOrders().stream().allMatch(order -> "picker-fulfillment@example.com".equals(order.getPickerEmail())));
+        assertTrue(fulfilled.getOrders().stream().allMatch(order -> "EMP-FULL".equals(order.getPickerEmployeeId())));
+
+        List<BatchOrderInfo> frozenSnapshots = batchOrderInfoRepository.findAllByBatchInfoIdOrderByOrderNumberAscIdAsc(created.getBatchId());
+        assertTrue(frozenSnapshots.stream().allMatch(snapshot -> snapshot.getOrderStatus() == OrderStatus.PACKED));
+        assertTrue(frozenSnapshots.stream().allMatch(snapshot -> snapshot.getPickerId() == pickerId));
+        assertTrue(frozenSnapshots.stream().allMatch(snapshot -> "Fulfillment Picker".equals(snapshot.getPickerName())));
+        assertTrue(frozenSnapshots.stream().allMatch(snapshot -> "picker-fulfillment@example.com".equals(snapshot.getPickerEmail())));
+        assertTrue(frozenSnapshots.stream().allMatch(snapshot -> "EMP-FULL".equals(snapshot.getPickerEmployeeId())));
+
+        orderService.markOrderShipped(firstOrder.getOrderNumber(), managerId);
+        orderService.markOrderDelivered(firstOrder.getOrderNumber(), managerId);
+
+        List<BatchOrderInfo> afterShipping = batchOrderInfoRepository.findAllByBatchInfoIdOrderByOrderNumberAscIdAsc(created.getBatchId());
+        assertTrue(afterShipping.stream().allMatch(snapshot -> snapshot.getOrderStatus() == OrderStatus.PACKED));
+        assertTrue(afterShipping.stream().allMatch(snapshot -> snapshot.getPickerId() == pickerId));
+        assertEquals(BatchStatus.FULFILLED, batchService.getBatch(created.getBatchId(), managerId).getStatus());
     }
 
     private long createActor(String email, Role role) {
